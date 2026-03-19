@@ -103,6 +103,7 @@ import EmployeeOnboardingNew from "./pages/hr/EmployeeOnboardingNew";
 import EmployeeOnboardingDetail from "./pages/hr/EmployeeOnboardingDetail";
 import EmployeeOnboardingEdit from "./pages/hr/EmployeeOnboardingEdit";
 import ModuleManagement from "./pages/ModuleManagement";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 import FrontDoorApp from "./pages/FrontDoorApp";
 import AIControlTower from "./pages/AIControlTower";
 import FailureRecovery from "./pages/FailureRecoveryFlow";
@@ -116,10 +117,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* iOPEX FrontDoor — primary surface */}
-          <Route path="/" element={<FrontDoorApp />} />
-          <Route path="/portal" element={<FrontDoorApp />} />
-          <Route path="/employee-portal" element={<FrontDoorApp />} />
+          {/* iOPEX FrontDoor — employee daily portal */}
+          <Route path="/" element={<EmployeeDashboard />} />
+          <Route path="/portal" element={<EmployeeDashboard />} />
+          <Route path="/employee-portal" element={<EmployeeDashboard />} />
+
+          {/* iOPEX Framework — sales/pitch artifact */}
+          <Route path="/framework" element={<FrontDoorApp />} />
 
           {/* iOPEX Governance — exec/admin artifacts */}
           <Route path="/governance/control-tower" element={
