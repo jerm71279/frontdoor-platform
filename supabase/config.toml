@@ -1,12 +1,6 @@
-project_id = "olrpexessehcijdvogxo"
+project_id = "kroqooyprcvzzgkclvmy"
 
-[functions.ninjaone-sync]
-verify_jwt = true
-
-[functions.ninjaone-ticket]
-verify_jwt = true
-
-[functions.ninjaone-webhook]
+[functions.intent-classifier]
 verify_jwt = false
 
 [functions.mcp-server]
@@ -40,9 +34,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.change-impact-analyzer]
-verify_jwt = true
-
-[functions.cipp-sync]
 verify_jwt = true
 
 [functions.repetitive-task-detector]
