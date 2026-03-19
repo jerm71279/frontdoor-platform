@@ -2,8 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import DashboardPortalLanes from "./components/DashboardPortalLanes";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import Auth from "./pages/Auth";
@@ -110,23 +109,12 @@ import FailureRecovery from "./pages/FailureRecoveryFlow";
 
 const queryClient = new QueryClient();
 
-// Hide OberaConnect nav on FrontDoor + governance routes
-function ConditionalNav() {
-  const { pathname } = useLocation();
-  const frontdoor = ["/", "/portal", "/employee-portal"].includes(pathname)
-    || pathname.startsWith("/governance")
-    || pathname.startsWith("/auth");
-  if (frontdoor) return null;
-  return <DashboardPortalLanes />;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <ConditionalNav />
         <Routes>
           {/* iOPEX FrontDoor — primary surface */}
           <Route path="/" element={<FrontDoorApp />} />
