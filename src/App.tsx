@@ -104,7 +104,9 @@ import EmployeeOnboardingNew from "./pages/hr/EmployeeOnboardingNew";
 import EmployeeOnboardingDetail from "./pages/hr/EmployeeOnboardingDetail";
 import EmployeeOnboardingEdit from "./pages/hr/EmployeeOnboardingEdit";
 import ModuleManagement from "./pages/ModuleManagement";
-import FrontDoor from "./pages/FrontDoor";
+import FrontDoorApp from "./pages/FrontDoorApp";
+import AIControlTower from "./pages/AIControlTower";
+import FailureRecovery from "./pages/FailureRecoveryFlow";
 
 const queryClient = new QueryClient();
 
@@ -117,8 +119,20 @@ const App = () => (
         <DashboardPortalLanes />
         <Routes>
           {/* iOPEX FrontDoor — end-user portal */}
-          <Route path="/portal" element={<FrontDoor />} />
-          <Route path="/employee-portal" element={<FrontDoor />} />
+          <Route path="/portal" element={<FrontDoorApp />} />
+          <Route path="/employee-portal" element={<FrontDoorApp />} />
+
+          {/* iOPEX Governance — exec/admin artifacts */}
+          <Route path="/governance/control-tower" element={
+            <ProtectedRoute requireAdmin>
+              <AIControlTower />
+            </ProtectedRoute>
+          } />
+          <Route path="/governance/failure-recovery" element={
+            <ProtectedRoute requireAdmin>
+              <FailureRecovery />
+            </ProtectedRoute>
+          } />
 
           <Route path="/" element={<Index />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
