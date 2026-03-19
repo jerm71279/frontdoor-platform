@@ -104,6 +104,7 @@ import EmployeeOnboardingNew from "./pages/hr/EmployeeOnboardingNew";
 import EmployeeOnboardingDetail from "./pages/hr/EmployeeOnboardingDetail";
 import EmployeeOnboardingEdit from "./pages/hr/EmployeeOnboardingEdit";
 import ModuleManagement from "./pages/ModuleManagement";
+import EmployeePortal from "./pages/EmployeePortal";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,9 @@ const App = () => (
       <BrowserRouter>
         <DashboardPortalLanes />
         <Routes>
+          {/* iOPEX FrontDoor — employee-facing routes */}
+          <Route path="/employee-portal" element={<EmployeePortal />} />
+
           <Route path="/" element={<Index />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/developers" element={<Developers />} />

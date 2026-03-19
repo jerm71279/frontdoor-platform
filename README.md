@@ -1,8 +1,69 @@
-# OberaConnect Platform
+# iOPEX AI FrontDoor Platform
 
-**Version:** 2.1 | **Last Updated:** October 10, 2025 | **Status:** Production Ready ✅
+**Version:** 1.0 | **Updated:** March 2026 | **Status:** Phase 1 In Progress
 
-## 📦 Documentation Package
+A ServiceNow-style enterprise Digital Front Door that iOPEX deploys for customers.
+Employees get a single AI-powered surface for IT, HR, Finance, and Operations requests.
+8-week deployment. No rip-and-replace of existing systems.
+
+## Architecture
+
+```
+Engagement Gateway   →  Employee portal (chat-first PWA, white-labeled per customer)
+Signal Engine        →  intent-classifier edge function (Gemini 2.5 Flash, <300ms)
+WorkStream           →  Workflow engine (reused, enterprise templates added)
+TrustCore            →  Audit logging + ai_routing_log + RLS/RBAC (zero-trust)
+Nexus                →  Adapters: M365, Workday, SAP, ServiceNow ITSM, Jira, Slack
+```
+
+## Quick Start
+
+```bash
+npm install
+npm run dev           # http://localhost:8080/employee-portal
+```
+
+## Key Routes
+
+| Route | Description |
+|-------|-------------|
+| `/employee-portal` | Employee-facing Digital Front Door (the product) |
+| `/auth` | Authentication |
+| `/portal` | Admin/ops portal (internal) |
+
+## Edge Functions
+
+| Function | Purpose |
+|----------|---------|
+| `intent-classifier` | Signal Engine — classifies input, routes to catalog, logs to TrustCore |
+| `intelligent-assistant` | General AI assistant (admin) |
+| `workflow-executor` | WorkStream — executes multi-step workflows |
+| `workflow-orchestrator` | WorkStream — coordinates workflow state |
+
+## Environment Variables (Supabase Edge Functions)
+
+```
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+GEMINI_API_KEY
+```
+
+## Database
+
+New tables added in Phase 1 migration (`20260319000001_frontdoor_phase1.sql`):
+
+- `customer_branding` — white-label config per tenant
+- `service_catalog` — request categories (IT, HR, Finance, Ops)
+- `catalog_items` — individual request types with SLA + routing hints
+- `ai_routing_log` — immutable audit of every Signal Engine decision
+- `employee_requests` — employee request tracking with status + SLA
+
+Seed default catalog for a new tenant:
+```sql
+SELECT public.seed_default_catalog('<customer_id>');
+```
+
+## Documentation Package
 
 **🎯 START HERE**: [DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md) - Complete documentation catalog with export instructions
 
