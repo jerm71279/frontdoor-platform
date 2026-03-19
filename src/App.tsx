@@ -118,7 +118,8 @@ const App = () => (
       <BrowserRouter>
         <DashboardPortalLanes />
         <Routes>
-          {/* iOPEX FrontDoor — end-user portal */}
+          {/* iOPEX FrontDoor — primary surface */}
+          <Route path="/" element={<FrontDoorApp />} />
           <Route path="/portal" element={<FrontDoorApp />} />
           <Route path="/employee-portal" element={<FrontDoorApp />} />
 
@@ -134,7 +135,6 @@ const App = () => (
             </ProtectedRoute>
           } />
 
-          <Route path="/" element={<Index />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/developers" element={<Developers />} />
           <Route path="/architecture-diagram" element={<ArchitectureDiagram />} />
