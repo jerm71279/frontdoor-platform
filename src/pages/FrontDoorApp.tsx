@@ -6,7 +6,6 @@
 // Uses intelligent-assistant edge function from OberaConnect
 
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Send, Loader2, X, MessageSquare, Clock, CheckCircle2, ChevronRight, List } from "lucide-react";
@@ -356,39 +355,20 @@ function ChatWidget({ user, customer }: { user: any; customer: any }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   APP SHELL — auth guard + wraps JSX + injects chat widget
+   APP SHELL — always renders JSX + optional chat widget
 ══════════════════════════════════════════════════════════════════════ */
 export default function FrontDoorApp() {
-  const navigate = useNavigate();
-  const [user, setUser]       = useState<any>(null);
+  const [user, setUser]         = useState<any>(null);
   const [customer, setCustomer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { init(); }, []);
-
-  async function init() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { navigate("/auth"); return; }
-    setUser(session.user);
-
-    const { data: cust } = await supabase
-      .from("customers").select("*").eq("user_id", session.user.id).single();
-    setCustomer(cust);
-    setLoading(false);
-  }
-
-  if (loading) {
-    return (
-      <div style={{ background: T.navy, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 32, color: T.gold, marginBottom: 12 }}>⬡</div>
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.muted, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            Loading FrontDoor…
-          </p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      setUser(session.user);
+      supabase.from("customers").select("*").eq("user_id", session.user.id).single()
+        .then(({ data }) => setCustomer(data));
+    });
+  }, []);
 
   return (
     <>
