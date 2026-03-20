@@ -66,6 +66,18 @@ const DOMAINS = [
     scenarios: ["Brand asset","Creative brief","Campaign approval","Social post","Swag order","Event request","Press inquiry","Media kit"] },
 ];
 
+/* ── RAG Knowledge Corpus — one per domain, mirrors AI Control Tower ── */
+const RAG_CORPUS: Record<string, { corpus: string; docs: string; chunks: string }> = {
+  IT:         { corpus: "ServiceNow KB · IT Runbooks · Device Catalog",    docs: "38K",  chunks: "12" },
+  HR:         { corpus: "Workday Docs · HR Policy · Benefits KB",          docs: "52K",  chunks: "9"  },
+  Finance:    { corpus: "SAP GL Docs · Finance Policy · Vendor Registry",  docs: "29K",  chunks: "11" },
+  Legal:      { corpus: "Contract Templates · Legal Policy · NDA Corpus",  docs: "14K",  chunks: "8"  },
+  Facilities: { corpus: "Facilities Runbooks · Room System · Badge Ops",   docs: "8K",   chunks: "7"  },
+  Security:   { corpus: "IAM Policies · SOC Runbooks · Access Matrix",     docs: "21K",  chunks: "14" },
+  Operations: { corpus: "Ops SOPs · Vendor Registry · Process Library",    docs: "17K",  chunks: "10" },
+  Marketing:  { corpus: "Brand Guidelines · Creative Briefs · Asset Lib",  docs: "11K",  chunks: "6"  },
+};
+
 /* ── Status ── */
 const S: Record<string, { label: string; color: string; bg: string }> = {
   submitted:   { label: "Submitted",        color: T.teal,    bg: T.tealDim },
@@ -117,10 +129,12 @@ function buildSteps(domain: string, approval: boolean) {
     Facilities:"Facilities management notified", Security:"IAM review initiated",
     Operations:"Ops team alerted", Marketing:"Creative team notified",
   };
+  const rag = RAG_CORPUS[domain] || RAG_CORPUS.Operations;
   const steps = [
-    {label:"Submitted",                    done:true,  active:false, time:"just now"},
-    {label:`AI routed → ${domain}`,        done:false, active:true,  time:""},
-    {label:systemMap[domain]||"Processing",done:false, active:false, time:""},
+    {label:"Submitted",                              done:true,  active:false, time:"just now"},
+    {label:`AI routed → ${domain}`,                  done:false, active:true,  time:""},
+    {label:`KB grounding · ${rag.chunks} chunks`,    done:false, active:false, time:""},
+    {label:systemMap[domain]||"Processing",          done:false, active:false, time:""},
   ];
   if (approval) {
     steps.push({label:"Manager approval",  done:false, active:false, time:""});
@@ -234,7 +248,7 @@ function Drawer({ req, onClose, onApprove }: { req: any; onClose: () => void; on
         {/* Signal Engine Audit */}
         <div style={{margin:"16px 24px 24px",background:T.violetDim,border:`1px solid rgba(139,92,246,0.18)`,borderRadius:10,padding:16}}>
           <div style={{fontSize:10,color:T.violet,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em",marginBottom:12}}>SIGNAL ENGINE AUDIT · TRUSTCORE</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
             {[
               {k:"Domain",     v:req.domain},
               {k:"Confidence", v:req.confidence||"0.94"},
@@ -249,6 +263,33 @@ function Drawer({ req, onClose, onApprove }: { req: any; onClose: () => void; on
               </div>
             ))}
           </div>
+          {/* RAG Grounding section */}
+          {(()=>{
+            const rag = RAG_CORPUS[req.domain] || RAG_CORPUS.Operations;
+            return (
+              <div style={{
+                background:"rgba(16,185,129,0.06)",
+                border:`1px solid rgba(16,185,129,0.18)`,
+                borderRadius:7,padding:"10px 12px",
+              }}>
+                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
+                  <span style={{
+                    background:T.emeraldDim,color:T.emerald,
+                    border:`1px solid rgba(16,185,129,0.25)`,
+                    borderRadius:3,padding:"1px 7px",
+                    fontSize:9,fontFamily:"'DM Mono',monospace",fontWeight:700,
+                  }}>RAG · GROUNDED</span>
+                  <span style={{color:T.emerald,fontSize:10,fontFamily:"'DM Mono',monospace"}}>
+                    {rag.chunks} chunks retrieved · {rag.docs} docs indexed
+                  </span>
+                </div>
+                <div style={{color:T.muted,fontSize:10,marginBottom:3}}>Knowledge Corpus</div>
+                <div style={{color:T.text,fontSize:11,fontFamily:"'DM Mono',monospace",lineHeight:1.5}}>
+                  {rag.corpus}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
@@ -444,7 +485,13 @@ export default function EmployeeDashboard() {
                       fontSize:15,color:d.color,
                     }}>{d.icon}</div>
                     <div style={{fontWeight:600,fontSize:12,color:d.color,marginBottom:2}}>{d.label}</div>
-                    <div style={{fontSize:10,color:T.muted,lineHeight:1.4}}>{d.desc}</div>
+                    <div style={{fontSize:10,color:T.muted,lineHeight:1.4,marginBottom:6}}>{d.desc}</div>
+                    <span style={{
+                      background:T.emeraldDim,color:T.emerald,
+                      border:`1px solid rgba(16,185,129,0.22)`,
+                      borderRadius:3,padding:"1px 6px",
+                      fontSize:9,fontFamily:"'DM Mono',monospace",fontWeight:700,
+                    }}>RAG ✓</span>
                   </button>
                 ))}
               </div>
