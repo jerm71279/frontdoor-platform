@@ -111,13 +111,43 @@ const Auth = () => {
   const demoLoginAs = async (email: string, name: string) => {
     setSigningInAs(email);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password: DEMO_PASSWORD,
+      // Bypass the Supabase client entirely — hardcoded URL/key guarantee this
+      // works regardless of env var state in the Render deployment.
+      const SUPA_URL = "https://kroqooyprcvzzgkclvmy.supabase.co";
+      const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtyb3Fvb3lwcmN2enpna2Nsdm15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTQ5ODEsImV4cCI6MjA4OTUzMDk4MX0.yqmJ_7Ka2qgITspGqhFCpET4fM7-LEvtfrTQo8EsHEk";
+
+      const res = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPA_KEY,
+        },
+        body: JSON.stringify({ email, password: DEMO_PASSWORD }),
       });
-      if (error) toast.error(`Could not sign in as ${name}: ${error.message}`);
-    } catch {
-      toast.error("Sign-in failed");
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(`Sign-in failed: ${err.error_description || err.msg || "Check credentials"}`);
+        return;
+      }
+
+      const data = await res.json();
+
+      // Write session to localStorage in the exact format Supabase JS v2 expects,
+      // then hard-navigate so AuthContext picks it up fresh.
+      const storageKey = "sb-kroqooyprcvzzgkclvmy-auth-token";
+      localStorage.setItem(storageKey, JSON.stringify({
+        access_token:  data.access_token,
+        token_type:    data.token_type,
+        expires_in:    data.expires_in,
+        expires_at:    Math.floor(Date.now() / 1000) + data.expires_in,
+        refresh_token: data.refresh_token,
+        user:          data.user,
+      }));
+
+      window.location.href = "/portal";
+    } catch (err: any) {
+      toast.error(`Error: ${err.message}`);
     } finally {
       setSigningInAs(null);
     }
