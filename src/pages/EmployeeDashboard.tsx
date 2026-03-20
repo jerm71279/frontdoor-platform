@@ -144,6 +144,72 @@ function buildSteps(domain: string, approval: boolean) {
   return steps;
 }
 
+/* ── Detect question vs. request ── */
+function isQuestion(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  return /^(what|how|when|where|who|why|can i|do i|is there|are there|show me|tell me|find|search|does|did|will|should i|what's|how's|what is|how do|how many|how long|am i|which)/.test(t);
+}
+
+/* ── Grounded KB answers per domain ── */
+const KB_ANSWERS: Record<string, { answer: string; sources: {doc: string; excerpt: string}[] }> = {
+  HR: {
+    answer: "Acme Corp PTO policy: 15 days/year (0–2 yrs tenure), 20 days (2–5 yrs), 25 days (5+ yrs). Carry-over cap: 5 days. Requests must be submitted at least 2 business days in advance. Sick leave is separate — 10 days/year, no carry-over.",
+    sources: [
+      { doc: "HR Policy 2026 · Section 4.2 — Leave Entitlements", excerpt: "Full-time employees accrue PTO at the rate defined by tenure band..." },
+      { doc: "Workday Benefits Guide v3.1", excerpt: "PTO balances are updated in Workday every pay cycle..." },
+    ],
+  },
+  IT: {
+    answer: "VPN uses GlobalProtect. Server: vpn.acmecorp.com. Download the client from the IT Self-Service Portal (portal.acmecorp.com/it). Use your Entra SSO credentials. If MFA fails, reset via Security > MFA Reset in FrontDoor.",
+    sources: [
+      { doc: "IT Runbooks v4.2 · VPN Setup", excerpt: "GlobalProtect is the approved VPN client for all Acme Corp endpoints..." },
+      { doc: "Device Catalog · Remote Access", excerpt: "All remote connections must use the corporate VPN tunnel..." },
+    ],
+  },
+  Finance: {
+    answer: "Expense limits: up to $500 no approval needed. $500–$2,000 requires manager approval. Over $2,000 requires VP sign-off. Receipts required for all purchases over $25. Submit within 30 days of expense date.",
+    sources: [
+      { doc: "Finance Policy FP-12 · Employee Expenses", excerpt: "All business expenses must be submitted through the approved expense system..." },
+      { doc: "SAP Concur Guide v2.0", excerpt: "Receipts must be attached digitally. Paper receipts are not accepted..." },
+    ],
+  },
+  Legal: {
+    answer: "Standard NDA review takes 3–5 business days. Template NDAs (mutual and one-way) are available via LegalAssist for immediate use — no review needed for standard templates. Custom NDAs require Legal team review.",
+    sources: [
+      { doc: "Legal Process Guide · NDAs", excerpt: "Template agreements are pre-approved by Legal and can be executed without review..." },
+      { doc: "Contract Templates Library v1.4", excerpt: "Mutual NDA Template MUT-001 covers standard confidentiality obligations..." },
+    ],
+  },
+  Security: {
+    answer: "Password requirements: minimum 12 characters, must include uppercase, lowercase, number, and special character. Rotate every 90 days. Cannot reuse last 10 passwords. MFA is mandatory for all systems. Report phishing to security@acmecorp.com.",
+    sources: [
+      { doc: "IAM Policy v2.4 · Password Standards", excerpt: "All user accounts must comply with NIST SP 800-63B password guidelines..." },
+      { doc: "SOC Runbook · Phishing Response", excerpt: "Suspected phishing emails should be forwarded to the Security Operations Center..." },
+    ],
+  },
+  Facilities: {
+    answer: "Conference rooms are bookable via Outlook or the Facilities portal. Rooms 101–108 (Floor 3) seat 4–12 people. Max booking: 4 hours. For recurring bookings over 2 weeks, submit a Facilities request. Visitor passes must be requested 24 hours in advance.",
+    sources: [
+      { doc: "Facilities Runbook · Room Booking", excerpt: "All meeting rooms are managed through the integrated calendar system..." },
+      { doc: "Badge & Access Operations Guide", excerpt: "Visitor access requires a sponsor employee to submit a pass request..." },
+    ],
+  },
+  Operations: {
+    answer: "Vendor onboarding requires: completed vendor form, W-9 (US) or W-8BEN (international), proof of insurance, and security questionnaire. Standard processing: 5–7 business days. New vendors must be approved by Procurement before any PO is raised.",
+    sources: [
+      { doc: "Ops SOPs · Vendor Onboarding v2.1", excerpt: "All new vendors must complete the Acme Corp supplier registration process..." },
+      { doc: "Procurement Policy PP-08", excerpt: "No purchase order may be raised against an unapproved vendor..." },
+    ],
+  },
+  Marketing: {
+    answer: "Brand assets (logos, templates, fonts) are in the Brand Portal at brand.acmecorp.com. Use only approved logo variants — minimum clear space is 1x the logo height. For new creative requests, submit a Creative Brief via FrontDoor with at least 5 business days lead time.",
+    sources: [
+      { doc: "Brand Guidelines 2026 · Visual Identity", excerpt: "The Acme Corp logo must never be stretched, recolored, or placed on busy backgrounds..." },
+      { doc: "Creative Brief Template v1.2", excerpt: "All external-facing creative must be reviewed by the Brand team before publication..." },
+    ],
+  },
+};
+
 /* ── Classify domain from text ── */
 function classifyDomain(text: string): string {
   const t = text.toLowerCase();
@@ -296,6 +362,7 @@ export default function EmployeeDashboard() {
   const [activeReq, setActiveReq] = useState<any>(null);
   const [activeDomain, setActiveDomain] = useState<string|null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [kbAnswer, setKbAnswer]   = useState<{domain:string;answer:string;sources:{doc:string;excerpt:string}[]}|null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const hour = new Date().getHours();
@@ -325,7 +392,16 @@ export default function EmployeeDashboard() {
     setSending(true);
     setInput("");
 
-    const domain  = classifyDomain(text);
+    const domain = classifyDomain(text);
+
+    /* ── Question? Route to KB, not ticket ── */
+    if (isQuestion(text)) {
+      const kb = KB_ANSWERS[domain] || KB_ANSWERS.Operations;
+      setKbAnswer({ domain, ...kb });
+      setSending(false);
+      return;
+    }
+
     const needsApproval = ["HR","Finance","Legal"].includes(domain) || text.toLowerCase().includes("laptop");
     const id = `REQ-${String(Math.floor(Math.random()*9000)+1000)}`;
     const newReq = {
@@ -353,6 +429,7 @@ export default function EmployeeDashboard() {
         setActiveDomain(null);
         setActiveReq(null);
         setNotifOpen(false);
+        setKbAnswer(null);
       }
     };
     window.addEventListener("keydown", handler);
@@ -480,6 +557,62 @@ export default function EmployeeDashboard() {
                 ))}
               </div>
             </div>
+
+            {/* ── KB ANSWER CARD ── */}
+            {kbAnswer&&(()=>{
+              const dom = DOMAINS.find(d=>d.id===kbAnswer.domain)||DOMAINS[0];
+              const rag = RAG_CORPUS[kbAnswer.domain]||RAG_CORPUS.Operations;
+              return (
+                <div style={{
+                  marginBottom:20,
+                  background:T.navyCard,
+                  border:`1px solid ${dom.color}30`,
+                  borderLeft:`3px solid ${dom.color}`,
+                  borderRadius:10,overflow:"hidden",
+                  boxShadow:`0 0 24px ${dom.color}08`,
+                }}>
+                  <div style={{padding:"14px 18px",borderBottom:`1px solid ${T.border}`,
+                    display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:16,color:dom.color}}>{dom.icon}</span>
+                      <span style={{fontSize:10,color:dom.color,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em"}}>
+                        {dom.label.toUpperCase()} · KNOWLEDGE BASE</span>
+                    </div>
+                    <button onClick={()=>setKbAnswer(null)} style={{
+                      background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:18,padding:4,lineHeight:1
+                    }}>×</button>
+                  </div>
+                  <div style={{padding:"16px 18px"}}>
+                    <p style={{color:T.bright,fontSize:13,lineHeight:1.7,marginBottom:14}}>{kbAnswer.answer}</p>
+                    <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.06em",marginBottom:8}}>
+                      SOURCES · {rag.chunks} CHUNKS · {rag.corpus}</div>
+                    <div style={{display:"flex",flexDirection:"column" as const,gap:7}}>
+                      {kbAnswer.sources.map((src,i)=>(
+                        <div key={i} style={{
+                          background:dom.color+"0A",border:`1px solid ${dom.color}18`,
+                          borderRadius:7,padding:"9px 12px",
+                        }}>
+                          <div style={{color:dom.color,fontSize:11,fontFamily:"'DM Mono',monospace",marginBottom:4}}>{src.doc}</div>
+                          <div style={{color:T.muted,fontSize:11,lineHeight:1.5,fontStyle:"italic"}}>"{src.excerpt}"</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:12,display:"flex",gap:8}}>
+                      <button onClick={()=>{setKbAnswer(null);setInput("I need to ");inputRef.current?.focus();}} style={{
+                        padding:"7px 14px",borderRadius:7,background:dom.color,
+                        border:"none",color:T.navy,fontWeight:700,fontSize:11,cursor:"pointer",
+                        fontFamily:"'DM Sans',sans-serif",
+                      }}>Submit a request instead →</button>
+                      <button onClick={()=>setKbAnswer(null)} style={{
+                        padding:"7px 14px",borderRadius:7,background:"transparent",
+                        border:`1px solid ${T.border}`,color:T.muted,fontSize:11,cursor:"pointer",
+                        fontFamily:"'DM Sans',sans-serif",
+                      }}>Dismiss</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── MY REQUESTS ── */}
             <div>
