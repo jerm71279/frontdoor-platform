@@ -1,29 +1,29 @@
 /**
  * iOPEX FrontDoor — Customer Configuration
- * Customer: BI.com
- * Branch:   customer/bi-com
+ * Customer: BT.com (British Telecom)
+ * Branch:   customer/bt-com
  */
 
 export const CUSTOMER = {
-  slug:          "bi-com",
-  name:          "BI.com",
-  domain:        "bi.com",
-  primary_color: "#2563EB",   // BI.com blue
-  accent_color:  "#06B6D4",
+  slug:          "bt-com",
+  name:          "BT.com",
+  domain:        "bt.com",
+  primary_color: "#6F2DA8",   // BT purple
+  accent_color:  "#00A8E0",   // BT blue
   logo_url:      null,
 };
 
 export const DEMO_USERS = [
-  { name: "Tyler Brooks",    email: "tyler.brooks@bi.com",    dept: "IT",          role: "IT Director",                 avatar: "TB", color: "#2563EB" },
-  { name: "Lauren Hayes",    email: "lauren.hayes@bi.com",    dept: "HR",          role: "People Operations Lead",      avatar: "LH", color: "#8B5CF6" },
-  { name: "Nathan Cole",     email: "nathan.cole@bi.com",     dept: "Finance",     role: "Sr. Financial Analyst",       avatar: "NC", color: "#10B981" },
-  { name: "Jessica Park",    email: "jessica.park@bi.com",    dept: "Legal",       role: "Corporate Counsel",           avatar: "JP", color: "#F59E0B" },
-  { name: "Derek Simmons",   email: "derek.simmons@bi.com",   dept: "Facilities",  role: "Facilities Manager",          avatar: "DS", color: "#38BDF8" },
-  { name: "Monica Wells",    email: "monica.wells@bi.com",    dept: "Security",    role: "InfoSec Analyst",             avatar: "MW", color: "#F43F5E" },
-  { name: "Kevin Zhang",     email: "kevin.zhang@bi.com",     dept: "Operations",  role: "Operations Director",         avatar: "KZ", color: "#84CC16" },
-  { name: "Amanda Torres",   email: "amanda.torres@bi.com",   dept: "Marketing",   role: "Marketing Manager",           avatar: "AT", color: "#EC4899" },
-  { name: "Ryan Patel",      email: "ryan.patel@bi.com",      dept: "IT",          role: "Cloud Architect",             avatar: "RP", color: "#2563EB" },
-  { name: "Samantha Lee",    email: "samantha.lee@bi.com",    dept: "HR",          role: "HR Business Partner",         avatar: "SL", color: "#8B5CF6" },
+  { name: "James Whitfield",  email: "james.whitfield@bt.com",  dept: "IT",          role: "IT Director",                 avatar: "JW", color: "#6F2DA8" },
+  { name: "Sarah Mitchell",   email: "sarah.mitchell@bt.com",   dept: "HR",          role: "People Operations Lead",      avatar: "SM", color: "#8B5CF6" },
+  { name: "Oliver Grant",     email: "oliver.grant@bt.com",     dept: "Finance",     role: "Sr. Financial Analyst",       avatar: "OG", color: "#10B981" },
+  { name: "Priya Sharma",     email: "priya.sharma@bt.com",     dept: "Legal",       role: "Corporate Counsel",           avatar: "PS", color: "#F59E0B" },
+  { name: "Tom Clarke",       email: "tom.clarke@bt.com",       dept: "Facilities",  role: "Facilities Manager",          avatar: "TC", color: "#38BDF8" },
+  { name: "Emma Davies",      email: "emma.davies@bt.com",      dept: "Security",    role: "InfoSec Analyst",             avatar: "ED", color: "#F43F5E" },
+  { name: "Raj Patel",        email: "raj.patel@bt.com",        dept: "Operations",  role: "Operations Director",         avatar: "RP", color: "#84CC16" },
+  { name: "Claire Hughes",    email: "claire.hughes@bt.com",    dept: "Marketing",   role: "Marketing Manager",           avatar: "CH", color: "#EC4899" },
+  { name: "Daniel Foster",    email: "daniel.foster@bt.com",    dept: "IT",          role: "Cloud Architect",             avatar: "DF", color: "#00A8E0" },
+  { name: "Natalie Cox",      email: "natalie.cox@bt.com",      dept: "HR",          role: "HR Business Partner",         avatar: "NC", color: "#8B5CF6" },
 ];
 
-export const DEMO_PASSWORD = "BiCom@2026!";
+export const DEMO_PASSWORD = "BtCom@2026!";
