@@ -276,10 +276,22 @@ function Drawer({ req, empManager, onClose }: {
         {req.status==="pending"&&(
           <div style={{padding:"16px 24px",borderBottom:`1px solid ${T.border}`}}>
             <div style={{background:T.amberDim,border:`1px solid rgba(245,158,11,0.22)`,borderRadius:10,padding:16}}>
-              <div style={{color:T.amber,fontSize:13,fontWeight:600,marginBottom:3}}>Approval Email Sent</div>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                <div style={{color:T.amber,fontSize:13,fontWeight:600}}>Awaiting Manager Approval</div>
+                <div style={{display:"flex",gap:4}}>
+                  {(req.approval_channels?.includes("teams")) && (
+                    <span style={{fontSize:9,color:"#818CF8",background:"rgba(129,140,248,0.12)",border:"1px solid rgba(129,140,248,0.25)",borderRadius:3,padding:"1px 5px",fontFamily:"'DM Mono',monospace"}}>TEAMS</span>
+                  )}
+                  {(req.approval_channels?.includes("email")) && (
+                    <span style={{fontSize:9,color:T.emerald,background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:3,padding:"1px 5px",fontFamily:"'DM Mono',monospace"}}>EMAIL</span>
+                  )}
+                  {(!req.approval_channels?.length) && (
+                    <span style={{fontSize:9,color:T.muted,fontFamily:"'DM Mono',monospace"}}>no channel configured</span>
+                  )}
+                </div>
+              </div>
               <div style={{color:T.muted,fontSize:12,lineHeight:1.5}}>
-                An approval request has been sent to <strong style={{color:T.text}}>{req.approver_email || empManager}</strong>.
-                Waiting for response…
+                Sent to <strong style={{color:T.text}}>{req.approver_email || empManager}</strong>. Waiting for response…
               </div>
             </div>
           </div>
@@ -546,19 +558,23 @@ export default function EmployeeDashboard() {
   }
 
   async function triggerApprovalEmail(reqId: string, approverEmail: string, title: string, domain: string) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string|undefined;
-    const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string|undefined;
-    if (!supabaseUrl || !anonKey) return;
-    fetch(`${supabaseUrl}/functions/v1/send-approval-request`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
-      body: JSON.stringify({
-        request_id: reqId,
-        approver_email: approverEmail,
-        requester_name: EMP.name,
-        title, domain,
-      }),
-    }).catch(()=>{});
+    const SUPA_URL  = "https://kroqooyprcvzzgkclvmy.supabase.co";
+    const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtyb3Fvb3lwcmN2enpna2Nsdm15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTQ5ODEsImV4cCI6MjA4OTUzMDk4MX0.yqmJ_7Ka2qgITspGqhFCpET4fM7-LEvtfrTQo8EsHEk";
+    try {
+      const res = await fetch(`${SUPA_URL}/functions/v1/send-approval-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": SUPA_ANON },
+        body: JSON.stringify({
+          request_id: reqId, approver_email: approverEmail,
+          requester_name: EMP.name, title, domain,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Update local request with which channels fired
+        updateLocalRequest(reqId, { approval_channels: data.channels_active ?? [] });
+      }
+    } catch(_) {}
   }
 
   /* ── Handle catalog item selection ── */
