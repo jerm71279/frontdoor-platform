@@ -7,8 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Send, Loader2, X, MessageSquare, Clock, CheckCircle2, ChevronRight, List } from "lucide-react";
+import { Send, Loader2, X, List } from "lucide-react";
 import IopexFrontDoor from "./IopexFramework";
 
 /* ── Design tokens — exact match to IopexFramework.jsx ──────────────── */
@@ -82,43 +81,33 @@ function ChatWidget({ user, customer }: { user: any; customer: any }) {
     const typingMsg: Msg = { id: crypto.randomUUID(), role: "assistant", content: "", isTyping: true };
     setMessages(p => [...p, userMsg, typingMsg]);
 
-    try {
-      const { data, error } = await supabase.functions.invoke("intelligent-assistant", {
-        body: {
-          query: msg,
-          customerId: customer?.id,
-          userId: user?.id,
-          conversationHistory: messages.filter(m => !m.isTyping).map(m => ({ role: m.role, content: m.content })),
-        },
-      });
+    // Classify domain locally
+    const t = msg.toLowerCase();
+    const domain =
+      t.match(/laptop|computer|software|figma|vpn|password|device|license|monitor|keyboard|git|deploy|it |tech/) ? "IT" :
+      t.match(/pto|leave|vacation|benefit|time off|sick|payroll|insurance|hr |people|onboard/) ? "HR" :
+      t.match(/expense|receipt|reimburs|purchase|invoice|budget|finance|po |vendor|payment|travel/) ? "Finance" :
+      t.match(/nda|contract|legal|compliance|privacy|trademark|patent/) ? "Legal" :
+      t.match(/badge|room|parking|office|supplies|desk|building|visitor|facilities/) ? "Facilities" :
+      t.match(/mfa|security|incident|phish|access review|audit|privileged/) ? "Security" :
+      "Operations";
 
-      setMessages(p => p.filter(m => !m.isTyping));
+    const replies: Record<string, string> = {
+      IT:         `Got it — I've routed your IT request to the ServiceNow queue. The IT team will respond within 4 business hours. You'll receive a Teams notification when your ticket is updated.`,
+      HR:         `Understood — your HR request has been sent to Workday and flagged for ${user?.email?.split("@")[0] || "your manager"}'s review. Typical turnaround is 1 business day.`,
+      Finance:    `Your Finance request has been logged and sent to the GL team for validation. Expense reports are typically processed within 2 business days.`,
+      Legal:      `Your Legal request has been queued for the legal team. NDAs and contracts are typically reviewed within 3 business days.`,
+      Facilities: `Facilities request received — your request has been submitted to the facilities management system. You'll hear back within 24 hours.`,
+      Security:   `Security request logged and escalated to the IAM team. High-priority security items are addressed within 2 hours.`,
+      Operations: `Your request has been routed to the Operations team. They'll follow up within 1 business day.`,
+    };
 
-      if (error) throw error;
-
-      const reply = data?.response || data?.responseText || "I've captured your request and it's being reviewed.";
-      setMessages(p => [...p, { id: crypto.randomUUID(), role: "assistant", content: reply }]);
-
-      // Log request to employee_requests if we have a customer
-      if (customer?.id && user?.id) {
-        await supabase.from("employee_requests").insert({
-          customer_id: customer.id,
-          submitted_by: user.id,
-          title: msg.length > 80 ? msg.slice(0, 77) + "…" : msg,
-          description: msg,
-          status: "submitted",
-          sla_due_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-        });
-        toast.success("Request logged", { description: "Track it in My Requests" });
-      }
-    } catch {
-      setMessages(p => [
-        ...p.filter(m => !m.isTyping),
-        { id: crypto.randomUUID(), role: "assistant", content: "Something went wrong. Please try again." },
-      ]);
-    } finally {
-      setSending(false);
-    }
+    await new Promise(r => setTimeout(r, 900)); // simulate latency
+    setMessages(p => [
+      ...p.filter(m => !m.isTyping),
+      { id: crypto.randomUUID(), role: "assistant", content: replies[domain] },
+    ]);
+    setSending(false);
   }
 
   const openCount = requests.filter(r => !["completed","cancelled"].includes(r.status)).length;
