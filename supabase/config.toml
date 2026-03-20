@@ -6,6 +6,12 @@ verify_jwt = false
 [functions.ingest-workflow-resolution]
 verify_jwt = false
 
+[functions.send-approval-request]
+verify_jwt = false
+
+[functions.handle-approval]
+verify_jwt = false
+
 [functions.intent-classifier]
 verify_jwt = false
 
