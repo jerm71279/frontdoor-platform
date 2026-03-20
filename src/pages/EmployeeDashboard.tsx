@@ -2,7 +2,9 @@
  * iOPEX AI FrontDoor — One Platform · One Data Model · Every Corner of Your Business
  * Employee daily portal: unified AI surface across IT, HR, Finance, Legal, Facilities, Security, Ops
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 /* ── Tokens ── */
 const T = {
@@ -30,8 +32,8 @@ const T = {
   borderMid:  "rgba(255,255,255,0.03)",
 };
 
-/* ── Employee ── */
-const EMP = {
+/* ── Employee fallback (demo / unauthenticated) ── */
+const EMP_DEMO = {
   id: "EMP-8841", name: "Alex Chen", first: "Alex",
   dept: "Engineering", role: "Sr. Software Engineer",
   manager: "Sarah Park", avatar: "AC", location: "Austin, TX",
@@ -356,6 +358,24 @@ function Drawer({ req, onClose, onApprove }: { req: any; onClose: () => void; on
    MAIN
 ════════════════════════════════════════════════════════════════ */
 export default function EmployeeDashboard() {
+  const { profile, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  /* Resolve employee from real profile or demo fallback */
+  const EMP = useMemo(() => profile ? {
+    id:         `EMP-${profile.user_id.slice(0,4).toUpperCase()}`,
+    name:       profile.full_name  || EMP_DEMO.name,
+    first:      profile.first_name || EMP_DEMO.first,
+    dept:       profile.department || EMP_DEMO.dept,
+    role:       profile.role       || EMP_DEMO.role,
+    manager:    profile.manager    || EMP_DEMO.manager,
+    avatar:     profile.avatar     || EMP_DEMO.avatar,
+    location:   profile.location   || EMP_DEMO.location,
+    tenure:     profile.tenure     || EMP_DEMO.tenure,
+    pto:        profile.pto_balance ?? EMP_DEMO.pto,
+    costCenter: profile.cost_center|| EMP_DEMO.costCenter,
+  } : EMP_DEMO, [profile]);
+
   const [requests, setRequests]   = useState<any[]>(SEED);
   const [input, setInput]         = useState("");
   const [sending, setSending]     = useState(false);
@@ -748,7 +768,7 @@ export default function EmployeeDashboard() {
                 {k:"Cost Center",v:EMP.costCenter},
                 {k:"PTO Balance",v:`${EMP.pto} days`,c:T.violet},
                 {k:"Tenure",     v:EMP.tenure},
-              ].map(({k,v,c})=>(
+              ].filter(row=>row.v).map(({k,v,c})=>(
                 <div key={k} style={{display:"flex",justifyContent:"space-between",
                   padding:"5px 0",borderBottom:`1px solid ${T.borderMid}`}}>
                   <span style={{color:T.muted,fontSize:11}}>{k}</span>
@@ -756,6 +776,19 @@ export default function EmployeeDashboard() {
                 </div>
               ))}
             </div>
+
+            {/* Sign out */}
+            {profile&&(
+              <button onClick={async()=>{await signOut();navigate("/auth");}} style={{
+                width:"100%",padding:"8px 0",borderRadius:8,background:"transparent",
+                border:`1px solid ${T.border}`,color:T.muted,cursor:"pointer",
+                fontSize:11,fontFamily:"'DM Sans',sans-serif",
+                transition:"all 0.15s",
+              }}
+                onMouseEnter={e=>e.currentTarget.style.color=T.rose}
+                onMouseLeave={e=>e.currentTarget.style.color=T.muted}
+              >Sign out</button>
+            )}
 
             {/* One Data Model panel */}
             <div style={{background:T.navyCard,border:`1px solid ${T.goldBorder}`,borderRadius:10,padding:16}}>

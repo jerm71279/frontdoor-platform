@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import AppShell from "./components/AppShell";
@@ -19,24 +21,26 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppShell>
-          <Routes>
-            {/* iOPEX FrontDoor — employee daily portal */}
-            <Route path="/" element={<EmployeeDashboard />} />
-            <Route path="/portal" element={<EmployeeDashboard />} />
-            <Route path="/employee-portal" element={<EmployeeDashboard />} />
+        <AuthProvider>
+          <AppShell>
+            <Routes>
+              {/* Public */}
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/journey" element={<EndUserJourney />} />
 
-            {/* iOPEX Governance — exec/admin surfaces */}
-            <Route path="/governance/control-tower" element={<AIControlTower />} />
-            <Route path="/governance/failure-recovery" element={<FailureRecovery />} />
+              {/* Protected — employee portal */}
+              <Route path="/" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
+              <Route path="/portal" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
+              <Route path="/employee-portal" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
 
-            {/* End User Journey — employee value story */}
-            <Route path="/journey" element={<EndUserJourney />} />
+              {/* Protected — governance */}
+              <Route path="/governance/control-tower" element={<ProtectedRoute><AIControlTower /></ProtectedRoute>} />
+              <Route path="/governance/failure-recovery" element={<ProtectedRoute><FailureRecovery /></ProtectedRoute>} />
 
-            <Route path="/auth" element={<Auth />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppShell>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppShell>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

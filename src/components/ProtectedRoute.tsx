@@ -1,87 +1,43 @@
-import { useEffect, useState } from "react";
+/**
+ * iOPEX AI FrontDoor — ProtectedRoute
+ * Uses AuthContext — single auth state, no duplicate session checks.
+ * Redirects unauthenticated users to /auth.
+ */
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+const T = { navy: "#0B1120", gold: "#E8A020", muted: "#3D5068" };
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
 }
 
-const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    checkAccess();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkAccess();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAccess = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-
-      if (session && requireAdmin) {
-        // Check for admin role
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role_id, roles(name)")
-          .eq("user_id", session.user.id);
-        
-        let hasAdmin = roles?.some((ur: any) => 
-          ur.roles?.name === 'Super Admin' || ur.roles?.name === 'Admin'
-        );
-
-        // Fallback to RPC function
-        if (!hasAdmin) {
-          const { data: rpcHasAdmin } = await supabase.rpc('has_role', {
-            _user_id: session.user.id,
-            _role: 'admin'
-          });
-          hasAdmin = !!rpcHasAdmin;
-        }
-
-        setIsAdmin(!!hasAdmin);
-      } else {
-        setIsAdmin(true); // If not requiring admin, consider authorized
-      }
-    } catch (error) {
-      console.error("Error checking access:", error);
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const { session, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (requireAdmin && !isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">You don't have permission to access this page.</p>
+      <div style={{
+        minHeight: "100vh", background: T.navy,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexDirection: "column" as const, gap: 16,
+      }}>
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+          style={{ animation: "spin 2s linear infinite" }}>
+          <polygon points="16,2 29,9 29,23 16,30 3,23 3,9"
+            fill="none" stroke={T.gold} strokeWidth="1.5"/>
+        </svg>
+        <div style={{ color: T.muted, fontSize: 12, fontFamily: "'DM Mono',monospace" }}>
+          Authenticating…
         </div>
+        <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
       </div>
     );
+  }
+
+  if (!session) {
+    return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
