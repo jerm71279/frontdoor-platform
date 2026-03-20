@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const newProfile: Partial<EmployeeProfile> = {
         user_id:     userId,
-        tenant_id:   meta.company_name?.toLowerCase().replace(/\s+/g, "-") || "demo",
+        tenant_id:   "demo",
         full_name:   fullName,
         first_name:  firstName,
         email,

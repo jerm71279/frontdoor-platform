@@ -64,7 +64,7 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
-  const [signupCompany, setSignupCompany] = useState("");
+  const signupCompany = "Acme Inc";
   const [resetEmail, setResetEmail] = useState("");
   const [showResetForm, setShowResetForm] = useState(false);
 
@@ -468,6 +468,17 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="signup-company">Company</Label>
+                  <Input
+                    id="signup-company"
+                    type="text"
+                    value="Acme Inc"
+                    readOnly
+                    disabled
+                    className="opacity-60 cursor-not-allowed"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
                   <Input
                     id="signup-name"
@@ -475,17 +486,6 @@ const Auth = () => {
                     placeholder="John Doe"
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-company">Company Name</Label>
-                  <Input
-                    id="signup-company"
-                    type="text"
-                    placeholder="Acme Inc"
-                    value={signupCompany}
-                    onChange={(e) => setSignupCompany(e.target.value)}
                     required
                   />
                 </div>
