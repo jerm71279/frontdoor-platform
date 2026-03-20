@@ -330,28 +330,6 @@ function AIInventoryTab() {
       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>AI Inventory</div>
       <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>All AI agents, models, and knowledge sources registered on this tenant. Every agent is RAG-grounded.</div>
 
-      {/* ── Grounding summary banner ── */}
-      <div style={{
-        background: T.emeraldDim, border: `1px solid rgba(16,185,129,0.22)`,
-        borderRadius: 10, padding: "12px 18px", marginBottom: 20,
-        display: "flex", alignItems: "center", gap: 14,
-      }}>
-        <span style={{ fontSize: 20 }}>⬡</span>
-        <div style={{ flex: 1 }}>
-          <span style={{ color: T.emerald, fontWeight: 600, fontSize: 13 }}>All 5 agents are RAG-grounded</span>
-          <span style={{ color: T.muted, fontSize: 12, marginLeft: 12 }}>
-            Every response is grounded in verified enterprise knowledge — hallucination risk mitigated at every domain.
-          </span>
-        </div>
-        <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
-          {[["257K", "docs indexed"], ["5", "vector stores"], ["100%", "grounding coverage"]].map(([v, l]) => (
-            <div key={l} style={{ textAlign: "center" }}>
-              <div style={{ color: T.emerald, fontFamily: "'DM Mono', monospace", fontSize: 16, fontWeight: 700 }}>{v}</div>
-              <div style={{ color: T.muted, fontSize: 10 }}>{l}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* ── AI Agents table ── */}
       <div style={{ marginBottom: 20 }}>
@@ -373,15 +351,7 @@ function AIInventoryTab() {
                   <td style={{ padding: "12px 16px", color: T.text, fontFamily: "'DM Mono', monospace" }}>{item.calls}</td>
                   <td style={{ padding: "12px 16px", color: item.accuracy === "—" ? T.muted : T.teal, fontFamily: "'DM Mono', monospace" }}>{item.accuracy}</td>
                   <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{
-                        background: T.emeraldDim, color: T.emerald,
-                        border: `1px solid rgba(16,185,129,0.25)`,
-                        borderRadius: 4, padding: "2px 7px", fontSize: 10,
-                        fontFamily: "'DM Mono', monospace", fontWeight: 700, flexShrink: 0,
-                      }}>RAG ✓</span>
-                      <span style={{ color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace" }}>{item.corpus}</span>
-                    </div>
+                    <span style={{ color: T.muted, fontSize: 11, fontFamily: "'DM Mono', monospace" }}>{item.corpus}</span>
                   </td>
                   <td style={{ padding: "12px 16px" }}>
                     <span style={{
@@ -566,12 +536,11 @@ function RiskTab() {
       </div>
       {/* Grounding coverage — closed control */}
       <div style={{ background: T.navyCard, border: `1px solid rgba(16,185,129,0.18)`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
-        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ color: T.bright, fontSize: 13, fontWeight: 600 }}>RAG Grounding Coverage</span>
-          <span style={{ background: T.emeraldDim, color: T.emerald, border: `1px solid rgba(16,185,129,0.25)`, borderRadius: 4, padding: "2px 10px", fontSize: 10, fontFamily: "'DM Mono', monospace", fontWeight: 700 }}>100% COVERED · NO RISK</span>
-        </div>
-        <div style={{ padding: "10px 18px 4px", color: T.muted, fontSize: 12 }}>
-          All active agents are grounded in verified enterprise knowledge. Hallucination risk mitigated. Responses are citeable and auditable.
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+          <span style={{ color: T.bright, fontSize: 13, fontWeight: 600 }}>Knowledge Grounding Coverage</span>
+          <div style={{ color: T.muted, fontSize: 12, marginTop: 4 }}>
+            All active agents grounded in verified enterprise knowledge. Responses are citeable and auditable.
+          </div>
         </div>
         {groundingControls.map((g, i) => (
           <div key={i} style={{ display: "flex", gap: 14, padding: "11px 18px", borderBottom: `1px solid ${T.borderMid}`, alignItems: "center" }}>

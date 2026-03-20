@@ -263,31 +263,21 @@ function Drawer({ req, onClose, onApprove }: { req: any; onClose: () => void; on
               </div>
             ))}
           </div>
-          {/* RAG Grounding section */}
+          {/* Grounding — no label, just the data */}
           {(()=>{
             const rag = RAG_CORPUS[req.domain] || RAG_CORPUS.Operations;
             return (
-              <div style={{
-                background:"rgba(16,185,129,0.06)",
-                border:`1px solid rgba(16,185,129,0.18)`,
-                borderRadius:7,padding:"10px 12px",
-              }}>
-                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
-                  <span style={{
-                    background:T.emeraldDim,color:T.emerald,
-                    border:`1px solid rgba(16,185,129,0.25)`,
-                    borderRadius:3,padding:"1px 7px",
-                    fontSize:9,fontFamily:"'DM Mono',monospace",fontWeight:700,
-                  }}>RAG · GROUNDED</span>
-                  <span style={{color:T.emerald,fontSize:10,fontFamily:"'DM Mono',monospace"}}>
-                    {rag.chunks} chunks retrieved · {rag.docs} docs indexed
-                  </span>
-                </div>
-                <div style={{color:T.muted,fontSize:10,marginBottom:3}}>Knowledge Corpus</div>
-                <div style={{color:T.text,fontSize:11,fontFamily:"'DM Mono',monospace",lineHeight:1.5}}>
-                  {rag.corpus}
-                </div>
-              </div>
+              <>
+                {[
+                  {k:"Knowledge sources", v:`${rag.chunks} chunks · ${rag.docs} indexed`},
+                  {k:"Corpus",            v:rag.corpus},
+                ].map(({k,v})=>(
+                  <div key={k} style={{marginTop:10}}>
+                    <div style={{color:T.muted,fontSize:10,marginBottom:2}}>{k}</div>
+                    <div style={{color:T.text,fontSize:11,fontFamily:"'DM Mono',monospace",lineHeight:1.5}}>{v}</div>
+                  </div>
+                ))}
+              </>
             );
           })()}
         </div>
@@ -485,13 +475,7 @@ export default function EmployeeDashboard() {
                       fontSize:15,color:d.color,
                     }}>{d.icon}</div>
                     <div style={{fontWeight:600,fontSize:12,color:d.color,marginBottom:2}}>{d.label}</div>
-                    <div style={{fontSize:10,color:T.muted,lineHeight:1.4,marginBottom:6}}>{d.desc}</div>
-                    <span style={{
-                      background:T.emeraldDim,color:T.emerald,
-                      border:`1px solid rgba(16,185,129,0.22)`,
-                      borderRadius:3,padding:"1px 6px",
-                      fontSize:9,fontFamily:"'DM Mono',monospace",fontWeight:700,
-                    }}>RAG ✓</span>
+                    <div style={{fontSize:10,color:T.muted,lineHeight:1.4}}>{d.desc}</div>
                   </button>
                 ))}
               </div>
