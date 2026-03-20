@@ -14,20 +14,7 @@ import { Separator } from "@/components/ui/separator";
 
 import { userProfileSchema, sanitizeText } from "@/lib/validation";
 
-/* ── Demo employees (Acme Inc test users) ── */
-const DEMO_USERS = [
-  { name: "Jordan Lee",        email: "jordan.lee@acmecorp.com",        dept: "IT",          role: "Sr. Software Engineer",        avatar: "JL", color: "#06B6D4" },
-  { name: "Maya Patel",        email: "maya.patel@acmecorp.com",        dept: "HR",          role: "HR Business Partner",          avatar: "MP", color: "#8B5CF6" },
-  { name: "Carlos Rodriguez",  email: "carlos.rodriguez@acmecorp.com",  dept: "Finance",     role: "Financial Analyst",            avatar: "CR", color: "#10B981" },
-  { name: "Sarah Kim",         email: "sarah.kim@acmecorp.com",         dept: "Legal",       role: "Associate Counsel",            avatar: "SK", color: "#F59E0B" },
-  { name: "Marcus Thompson",   email: "marcus.thompson@acmecorp.com",   dept: "Facilities",  role: "Office Manager",               avatar: "MT", color: "#38BDF8" },
-  { name: "Priya Singh",       email: "priya.singh@acmecorp.com",       dept: "Security",    role: "Security Analyst",             avatar: "PS", color: "#F43F5E" },
-  { name: "David Chen",        email: "david.chen@acmecorp.com",        dept: "Operations",  role: "Operations Manager",           avatar: "DC", color: "#84CC16" },
-  { name: "Rachel Foster",     email: "rachel.foster@acmecorp.com",     dept: "Marketing",   role: "Brand Manager",                avatar: "RF", color: "#EC4899" },
-  { name: "James Wilson",      email: "james.wilson@acmecorp.com",      dept: "IT",          role: "DevOps Engineer",              avatar: "JW", color: "#06B6D4" },
-  { name: "Aisha Johnson",     email: "aisha.johnson@acmecorp.com",     dept: "HR",          role: "Talent Acquisition Specialist",avatar: "AJ", color: "#8B5CF6" },
-];
-const DEMO_PASSWORD = "Acme@2026!";
+import { CUSTOMER, DEMO_USERS, DEMO_PASSWORD } from "@/config/customer";
 
 // Enhanced validation schemas with security requirements
 const loginSchema = z.object({
@@ -293,7 +280,7 @@ const Auth = () => {
               <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke="#E8A020" strokeWidth="1.5"/>
             </svg>
             <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: "#E8A020", letterSpacing: "0.07em" }}>
-              DEMO · ACME INC — SIGN IN AS ANY EMPLOYEE
+              DEMO · {CUSTOMER.name.toUpperCase()} — SIGN IN AS ANY EMPLOYEE
             </span>
           </div>
           <p style={{ fontSize: 12, color: "#3D5068", marginBottom: 16, marginLeft: 26 }}>

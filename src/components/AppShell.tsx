@@ -8,6 +8,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
+import { CUSTOMER, DEMO_USERS, DEMO_PASSWORD } from "@/config/customer";
 
 const T = {
   navyDeep:   "#080E1A",
@@ -27,19 +28,6 @@ const T = {
   navyCard:   "#111927",
 };
 
-const DEMO_USERS = [
-  { name: "Jordan Lee",       email: "jordan.lee@acmecorp.com",       dept: "IT",         avatar: "JL", color: "#06B6D4" },
-  { name: "Maya Patel",       email: "maya.patel@acmecorp.com",       dept: "HR",         avatar: "MP", color: "#8B5CF6" },
-  { name: "Carlos Rodriguez", email: "carlos.rodriguez@acmecorp.com", dept: "Finance",    avatar: "CR", color: "#10B981" },
-  { name: "Sarah Kim",        email: "sarah.kim@acmecorp.com",        dept: "Legal",      avatar: "SK", color: "#F59E0B" },
-  { name: "Marcus Thompson",  email: "marcus.thompson@acmecorp.com",  dept: "Facilities", avatar: "MT", color: "#38BDF8" },
-  { name: "Priya Singh",      email: "priya.singh@acmecorp.com",      dept: "Security",   avatar: "PS", color: "#F43F5E" },
-  { name: "David Chen",       email: "david.chen@acmecorp.com",       dept: "Operations", avatar: "DC", color: "#84CC16" },
-  { name: "Rachel Foster",    email: "rachel.foster@acmecorp.com",    dept: "Marketing",  avatar: "RF", color: "#EC4899" },
-  { name: "James Wilson",     email: "james.wilson@acmecorp.com",     dept: "IT",         avatar: "JW", color: "#06B6D4" },
-  { name: "Aisha Johnson",    email: "aisha.johnson@acmecorp.com",    dept: "HR",         avatar: "AJ", color: "#8B5CF6" },
-];
-const DEMO_PASSWORD = "Acme@2026!";
 const SUPA_URL = "https://kroqooyprcvzzgkclvmy.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtyb3Fvb3lwcmN2enpna2Nsdm15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTQ5ODEsImV4cCI6MjA4OTUzMDk4MX0.yqmJ_7Ka2qgITspGqhFCpET4fM7-LEvtfrTQo8EsHEk";
 
