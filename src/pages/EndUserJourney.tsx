@@ -4,12 +4,13 @@
  * of a single AI-powered surface for every workplace need.
  */
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const T = {
-  navy:       "#080E1A",
-  navyMid:    "#0D1829",
-  navyCard:   "#111D2E",
-  navyBorder: "#162034",
+  navy:       "#0B1120",
+  navyMid:    "#0F1829",
+  navyCard:   "#111927",
+  navyHover:  "#18253A",
   gold:       "#E8A020",
   goldDim:    "rgba(232,160,32,0.10)",
   goldBorder: "rgba(232,160,32,0.22)",
@@ -134,14 +135,14 @@ const JOURNEY_STEPS = [
 // ─── Domain Cards ────────────────────────────────────────────────────────────
 
 const DOMAINS = [
-  { label: "IT",         icon: "⚙", color: T.teal,   caption: "Devices · Access · Incidents" },
-  { label: "HR",         icon: "◉", color: T.violet,  caption: "PTO · Benefits · Onboarding" },
+  { label: "IT",         icon: "⚙", color: T.teal,    caption: "Devices · Access · Incidents" },
+  { label: "HR",         icon: "◎", color: T.violet,  caption: "PTO · Benefits · Onboarding" },
   { label: "Finance",    icon: "◈", color: T.gold,    caption: "Expenses · Budgets · POs" },
-  { label: "Legal",      icon: "⬡", color: T.rose,    caption: "Contracts · NDAs · Policies" },
-  { label: "Facilities", icon: "⌂", color: T.amber,   caption: "Desks · Rooms · Maintenance" },
-  { label: "Security",   icon: "⬛", color: T.emerald, caption: "Access · Certs · Incidents" },
-  { label: "Operations", icon: "◎", color: T.teal,    caption: "Ops · Processes · SLAs" },
-  { label: "Marketing",  icon: "◇", color: T.violet,  caption: "Assets · Campaigns · Budget" },
+  { label: "Legal",      icon: "⊡", color: T.rose,    caption: "Contracts · NDAs · Policies" },
+  { label: "Facilities", icon: "⬡", color: T.amber,   caption: "Desks · Rooms · Maintenance" },
+  { label: "Security",   icon: "◬", color: T.emerald, caption: "Access · Certs · Incidents" },
+  { label: "Operations", icon: "◉", color: T.teal,    caption: "Ops · Processes · SLAs" },
+  { label: "Marketing",  icon: "◌", color: T.violet,  caption: "Assets · Campaigns · Budget" },
 ];
 
 // ─── Stats ───────────────────────────────────────────────────────────────────
@@ -263,7 +264,7 @@ export default function EndUserJourney() {
                   {/* Step indicator */}
                   <div style={{
                     width: 28, height: 28, borderRadius: "50%",
-                    background: active ? s.color + "20" : T.navyBorder,
+                    background: active ? s.color + "20" : T.navyHover,
                     border: `1px solid ${active ? s.color + "60" : T.border}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 13, flexShrink: 0,
@@ -486,7 +487,7 @@ export default function EndUserJourney() {
                     width: i === activeStep ? 20 : 6,
                     height: 6,
                     borderRadius: 3,
-                    background: i === activeStep ? JOURNEY_STEPS[i].color : T.navyBorder,
+                    background: i === activeStep ? JOURNEY_STEPS[i].color : T.navyHover,
                     cursor: "pointer",
                     transition: "all 0.2s",
                   }}
@@ -535,8 +536,8 @@ export default function EndUserJourney() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <a
-            href="/"
+          <Link
+            to="/"
             style={{
               padding: "10px 22px",
               background: T.tealDim,
@@ -547,9 +548,9 @@ export default function EndUserJourney() {
             }}
           >
             Try Employee Portal →
-          </a>
-          <a
-            href="/governance/control-tower"
+          </Link>
+          <Link
+            to="/governance/control-tower"
             style={{
               padding: "10px 22px",
               background: T.goldDim,
@@ -560,7 +561,7 @@ export default function EndUserJourney() {
             }}
           >
             View AI Control Tower →
-          </a>
+          </Link>
         </div>
       </div>
     </div>

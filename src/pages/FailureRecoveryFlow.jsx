@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 
 const style = document.createElement("style");
 style.textContent = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   ::-webkit-scrollbar{width:3px;}
-  ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);border-radius:2px;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
 
   .frf-root{
-    font-family:'Syne',sans-serif;
-    background:#F4F6FA;color:#1A2230;
+    font-family:'DM Sans',sans-serif;
+    background:#0B1120;color:#C8D4E4;
     min-height:100vh;overflow:hidden;position:relative;
   }
   .frf-root::before{
@@ -20,13 +19,12 @@ style.textContent = `
   }
 
   .card{
-    background:#FFFFFF;
-    border:1px solid rgba(0,0,0,0.07);
+    background:#111927;
+    border:1px solid rgba(255,255,255,0.06);
     border-radius:10px;
-    box-shadow:0 1px 4px rgba(0,0,0,0.05);
   }
   .card-dark{
-    background:#1A2230;
+    background:#0D1829;
     border:1px solid rgba(255,255,255,0.06);
     border-radius:10px;
   }
@@ -36,12 +34,12 @@ style.textContent = `
     transition:all 0.3s ease;position:relative;
     border:1.5px solid transparent;
   }
-  .step-idle  {background:#F8FAFC;border-color:#E2E8F0;}
-  .step-active{background:#EFF6FF;border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
-  .step-pass  {background:#F0FDF4;border-color:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,0.08);}
-  .step-fail  {background:#FEF2F2;border-color:#EF4444;box-shadow:0 0 0 3px rgba(239,68,68,0.08);}
-  .step-warn  {background:#FFFBEB;border-color:#F59E0B;box-shadow:0 0 0 3px rgba(245,158,11,0.08);}
-  .step-skip  {background:#F8FAFC;border-color:#E2E8F0;opacity:0.4;}
+  .step-idle  {background:#111927;border-color:rgba(255,255,255,0.08);}
+  .step-active{background:rgba(59,130,246,0.08);border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
+  .step-pass  {background:rgba(16,185,129,0.08);border-color:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,0.08);}
+  .step-fail  {background:rgba(239,68,68,0.08);border-color:#EF4444;box-shadow:0 0 0 3px rgba(239,68,68,0.08);}
+  .step-warn  {background:rgba(245,158,11,0.08);border-color:#F59E0B;box-shadow:0 0 0 3px rgba(245,158,11,0.08);}
+  .step-skip  {background:#111927;border-color:rgba(255,255,255,0.05);opacity:0.35;}
 
   .mono{font-family:'DM Mono',monospace;}
 
@@ -50,12 +48,12 @@ style.textContent = `
     padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;
     font-family:'DM Mono',monospace;
   }
-  .b-blue  {background:rgba(59,130,246,0.1); color:#2563EB;border:1px solid rgba(59,130,246,0.2);}
-  .b-green {background:rgba(16,185,129,0.1); color:#059669;border:1px solid rgba(16,185,129,0.2);}
-  .b-red   {background:rgba(239,68,68,0.1);  color:#DC2626;border:1px solid rgba(239,68,68,0.2);}
-  .b-amber {background:rgba(245,158,11,0.1); color:#D97706;border:1px solid rgba(245,158,11,0.2);}
-  .b-gray  {background:rgba(0,0,0,0.04);     color:#6B7280;border:1px solid rgba(0,0,0,0.07);}
-  .b-purple{background:rgba(139,92,246,0.1); color:#7C3AED;border:1px solid rgba(139,92,246,0.2);}
+  .b-blue  {background:rgba(59,130,246,0.12); color:#60A5FA;border:1px solid rgba(59,130,246,0.25);}
+  .b-green {background:rgba(16,185,129,0.12); color:#34D399;border:1px solid rgba(16,185,129,0.25);}
+  .b-red   {background:rgba(239,68,68,0.12);  color:#F87171;border:1px solid rgba(239,68,68,0.25);}
+  .b-amber {background:rgba(245,158,11,0.12); color:#FCD34D;border:1px solid rgba(245,158,11,0.25);}
+  .b-gray  {background:rgba(255,255,255,0.05);color:#3D5068;border:1px solid rgba(255,255,255,0.08);}
+  .b-purple{background:rgba(139,92,246,0.12); color:#A78BFA;border:1px solid rgba(139,92,246,0.25);}
 
   .connector{
     width:2px;height:20px;margin:0 auto;
@@ -63,12 +61,12 @@ style.textContent = `
   }
 
   .audit-row{
-    padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.04);
+    padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);
     transition:background 0.12s;
   }
-  .audit-row:hover{background:#F8FAFC;}
+  .audit-row:hover{background:rgba(255,255,255,0.03);}
 
-  .progress-track{height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;}
+  .progress-track{height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
   .progress-fill2{height:100%;border-radius:2px;transition:width 0.8s ease;}
 
   .fade-in2{animation:fi2 0.4s ease forwards;}
@@ -134,17 +132,17 @@ const RECOVERY_STEPS = STEPS.map(s=>s.id);
 
 /* ── STATE ICON ────────────────────────────────────────────────────── */
 function StateIcon({state}){
-  if(state==="active") return <div className="spin" style={{width:14,height:14,border:"2px solid #3B82F6",borderTopColor:"transparent",borderRadius:"50%"}}/>
-  if(state==="pass")   return <span style={{color:"#10B981",fontSize:14}}>✓</span>
-  if(state==="fail")   return <span style={{color:"#EF4444",fontSize:14}}>✗</span>
-  if(state==="warn")   return <span style={{color:"#F59E0B",fontSize:14}}>⚠</span>
-  if(state==="skip")   return <span style={{color:"#CBD5E1",fontSize:12}}>○</span>
-  return <span style={{color:"#CBD5E1",fontSize:12}}>○</span>
+  if(state==="active") return <div className="spin" style={{width:14,height:14,border:"2px solid #60A5FA",borderTopColor:"transparent",borderRadius:"50%"}}/>
+  if(state==="pass")   return <span style={{color:"#34D399",fontSize:14}}>✓</span>
+  if(state==="fail")   return <span style={{color:"#F87171",fontSize:14}}>✗</span>
+  if(state==="warn")   return <span style={{color:"#FCD34D",fontSize:14}}>⚠</span>
+  if(state==="skip")   return <span style={{color:"#3D5068",fontSize:12}}>○</span>
+  return <span style={{color:"#3D5068",fontSize:12}}>○</span>
 }
 
 /* ── MAIN ─────────────────────────────────────────────────────────── */
 export default function FailureRecovery(){
-  const [mode, setMode]         = useState("idle"); // idle | happy | recovery | done-happy | done-recovery
+  const [mode, setMode]         = useState("idle");
   const [stepStates, setStepStates] = useState({});
   const [stepMessages, setStepMessages] = useState({});
   const [auditLog, setAuditLog] = useState([]);
@@ -218,17 +216,33 @@ export default function FailureRecovery(){
         <div style={{marginBottom:20}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
-              <h1 style={{fontSize:20,fontWeight:800,color:"#1A2230",letterSpacing:"-0.01em"}}>
-                Failure Recovery Demo
+              <div style={{
+                display:"inline-flex",alignItems:"center",gap:6,marginBottom:10,
+                background:"rgba(244,63,94,0.10)",border:"1px solid rgba(244,63,94,0.22)",
+                borderRadius:4,padding:"3px 10px",
+              }}>
+                <span style={{color:"#F43F5E",fontSize:10,fontFamily:"'DM Mono',monospace",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                  TrustCore · Resilience
+                </span>
+              </div>
+              <h1 style={{
+                fontFamily:"'Cormorant Garamond',serif",
+                fontSize:28,fontWeight:700,color:"#ECF1FA",letterSpacing:"-0.01em",marginBottom:4,
+              }}>
+                Failure Recovery
               </h1>
-              <p style={{fontSize:13,color:"#6B7280",marginTop:2}}>
+              <p style={{fontSize:13,color:"#3D5068",marginTop:2,fontFamily:"'DM Sans',sans-serif"}}>
                 Enterprise resilience — Workday rejection → AI re-routing → Manager approval → Recovery
               </p>
             </div>
             <div style={{display:"flex",gap:8}}>
               {(mode==="happy"||mode==="recovery"||mode.startsWith("done"))&&(
-                <button onClick={reset} style={{background:"transparent",border:"1px solid #E2E8F0",
-                  borderRadius:7,padding:"7px 14px",fontSize:12,fontWeight:600,color:"#6B7280",cursor:"pointer"}}>
+                <button onClick={reset} style={{
+                  background:"transparent",
+                  border:"1px solid rgba(255,255,255,0.08)",
+                  borderRadius:7,padding:"7px 14px",fontSize:12,fontWeight:600,
+                  color:"#3D5068",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",
+                }}>
                   Reset
                 </button>
               )}
@@ -243,8 +257,8 @@ export default function FailureRecovery(){
               <div className="card" style={{padding:"24px",cursor:"pointer",border:"1.5px solid #10B981"}}
                 onClick={()=>runFlow("happy")}>
                 <div style={{fontSize:28,marginBottom:12}}>✅</div>
-                <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>Happy Path</p>
-                <p style={{fontSize:12,color:"#6B7280",lineHeight:1.5}}>
+                <p style={{fontSize:15,fontWeight:700,color:"#ECF1FA",marginBottom:6}}>Happy Path</p>
+                <p style={{fontSize:12,color:"#3D5068",lineHeight:1.5}}>
                   Standard flow — employee adds dependent, Workday validates successfully, coverage activated.
                   No errors, no escalations.
                 </p>
@@ -257,8 +271,8 @@ export default function FailureRecovery(){
               <div className="card" style={{padding:"24px",cursor:"pointer",border:"1.5px solid #EF4444",
                 boxShadow:"0 0 0 3px rgba(239,68,68,0.06)"}} onClick={()=>runFlow("recovery")}>
                 <div style={{fontSize:28,marginBottom:12}}>🔄</div>
-                <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>Failure + Recovery Path</p>
-                <p style={{fontSize:12,color:"#6B7280",lineHeight:1.5}}>
+                <p style={{fontSize:15,fontWeight:700,color:"#ECF1FA",marginBottom:6}}>Failure + Recovery Path</p>
+                <p style={{fontSize:12,color:"#3D5068",lineHeight:1.5}}>
                   Workday rejects on a business rule (WD-4422). AI automatically re-routes to ServiceNow HRSD,
                   triggers manager approval, retries with exception override.
                 </p>
@@ -271,7 +285,7 @@ export default function FailureRecovery(){
               </div>
             </div>
             <div className="card-dark" style={{padding:"16px 20px"}}>
-              <p style={{fontSize:11,fontFamily:"DM Mono",color:"#4A5A6A",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
+              <p style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"#3D5068",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
                 SWOT Weakness Addressed
               </p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -281,10 +295,10 @@ export default function FailureRecovery(){
                   {icon:"📋",title:"Full audit trail",desc:"Compliance teams see the complete recovery path — not just the final result"},
                   {icon:"🛡️",title:"Governance enforced",desc:"Exception overrides require manager approval — AI cannot self-authorize escalation"},
                 ].map(w=>(
-                  <div key={w.title} style={{padding:"10px 12px",background:"rgba(255,255,255,0.04)",borderRadius:7,border:"1px solid rgba(255,255,255,0.06)"}}>
+                  <div key={w.title} style={{padding:"10px 12px",background:"rgba(255,255,255,0.03)",borderRadius:7,border:"1px solid rgba(255,255,255,0.06)"}}>
                     <p style={{fontSize:18,marginBottom:5}}>{w.icon}</p>
-                    <p style={{fontSize:12,fontWeight:700,color:"#C8D4E8",marginBottom:3}}>{w.title}</p>
-                    <p style={{fontSize:11,color:"#4A5A6A",lineHeight:1.4}}>{w.desc}</p>
+                    <p style={{fontSize:12,fontWeight:700,color:"#C8D4E4",marginBottom:3}}>{w.title}</p>
+                    <p style={{fontSize:11,color:"#3D5068",lineHeight:1.4}}>{w.desc}</p>
                   </div>
                 ))}
               </div>
@@ -300,10 +314,10 @@ export default function FailureRecovery(){
               {/* Progress bar */}
               <div className="card" style={{padding:"12px 16px",marginBottom:14}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{fontSize:12,fontWeight:600,color:"#1A2230"}}>
+                  <span style={{fontSize:12,fontWeight:600,color:"#ECF1FA"}}>
                     {mode==="happy"||mode==="done-happy" ? "✅ Standard Flow" : "🔄 Recovery Flow"}
                   </span>
-                  <span style={{fontSize:11,color:"#6B7280",fontFamily:"DM Mono"}}>
+                  <span style={{fontSize:11,color:"#3D5068",fontFamily:"'DM Mono',monospace"}}>
                     {Math.round(progress)}% complete
                   </span>
                 </div>
@@ -326,7 +340,6 @@ export default function FailureRecovery(){
                   const state = stepStates[step.id] || "idle";
                   const msg   = stepMessages[step.id] || "";
                   const isActive = activeStep===step.id;
-                  const isSkipped = cfg.state==="skip";
 
                   return(
                     <div key={step.id}>
@@ -335,7 +348,7 @@ export default function FailureRecovery(){
                           background: state==="pass" ? "#10B981"
                             : state==="fail" ? "#EF4444"
                             : state==="active" ? "#3B82F6"
-                            : "#E2E8F0"
+                            : "rgba(255,255,255,0.08)"
                         }}/>
                       )}
                       <div className={`${getNodeClass(step.id)}${state==="fail"?" error-shake":""}${state==="pass"&&i===visibleSteps.length-1?" success-pop":""}`}>
@@ -343,20 +356,21 @@ export default function FailureRecovery(){
                           <span style={{fontSize:18,lineHeight:1.3,flexShrink:0}}>{step.icon}</span>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                              <span style={{fontSize:13,fontWeight:600,color:"#1A2230"}}>{step.label}</span>
+                              <span style={{fontSize:13,fontWeight:600,color:"#ECF1FA"}}>{step.label}</span>
                               <span className={`badge2 b-${step.sys==="Azure"?"blue":step.sys==="Workday"?"amber":step.sys==="AI Engine"?"purple":step.sys==="ServiceNow"?"green":"gray"}`}>
                                 {step.sys}
                               </span>
                             </div>
                             {isActive&&(
                               <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>
-                                <div className="spin" style={{width:10,height:10,border:"1.5px solid #3B82F6",borderTopColor:"transparent",borderRadius:"50%"}}/>
-                                <span style={{fontSize:11,color:"#3B82F6",fontFamily:"DM Mono"}}>Processing…</span>
+                                <div className="spin" style={{width:10,height:10,border:"1.5px solid #60A5FA",borderTopColor:"transparent",borderRadius:"50%"}}/>
+                                <span style={{fontSize:11,color:"#60A5FA",fontFamily:"'DM Mono',monospace"}}>Processing…</span>
                               </div>
                             )}
                             {msg&&!isActive&&(
-                              <p style={{fontSize:11,color:state==="fail"?"#DC2626":state==="pass"?"#059669":"#6B7280",
-                                lineHeight:1.4,fontFamily:"DM Mono",marginTop:2}}>
+                              <p style={{fontSize:11,
+                                color:state==="fail"?"#F87171":state==="pass"?"#34D399":"#3D5068",
+                                lineHeight:1.4,fontFamily:"'DM Mono',monospace",marginTop:2}}>
                                 {msg}
                               </p>
                             )}
@@ -366,12 +380,12 @@ export default function FailureRecovery(){
 
                         {/* Error detail block */}
                         {state==="fail"&&msg&&(
-                          <div style={{marginTop:10,padding:"10px 12px",background:"rgba(239,68,68,0.06)",
-                            border:"1px solid rgba(239,68,68,0.2)",borderRadius:6}}>
-                            <p style={{fontSize:11,fontWeight:700,color:"#DC2626",marginBottom:4}}>
+                          <div style={{marginTop:10,padding:"10px 12px",background:"rgba(239,68,68,0.08)",
+                            border:"1px solid rgba(239,68,68,0.25)",borderRadius:6}}>
+                            <p style={{fontSize:11,fontWeight:700,color:"#F87171",marginBottom:4}}>
                               ⚠ Workday Business Rule Violation
                             </p>
-                            <p style={{fontSize:11,color:"#6B7280",lineHeight:1.5,fontFamily:"DM Mono"}}>{msg}</p>
+                            <p style={{fontSize:11,color:"#3D5068",lineHeight:1.5,fontFamily:"'DM Mono',monospace"}}>{msg}</p>
                             <div style={{marginTop:8,display:"flex",gap:6}}>
                               <span className="badge2 b-red">WD-4422</span>
                               <span className="badge2 b-amber">Auto-routing to HRSD</span>
@@ -381,9 +395,9 @@ export default function FailureRecovery(){
 
                         {/* Success override badge */}
                         {step.id==="workday_write"&&state==="pass"&&mode!=="happy"&&mode!=="done-happy"&&(
-                          <div style={{marginTop:8,padding:"8px 10px",background:"rgba(16,185,129,0.06)",
-                            border:"1px solid rgba(16,185,129,0.15)",borderRadius:6}}>
-                            <p style={{fontSize:11,color:"#059669",fontFamily:"DM Mono"}}>
+                          <div style={{marginTop:8,padding:"8px 10px",background:"rgba(16,185,129,0.08)",
+                            border:"1px solid rgba(16,185,129,0.20)",borderRadius:6}}>
+                            <p style={{fontSize:11,color:"#34D399",fontFamily:"'DM Mono',monospace"}}>
                               🔁 Retry #{1} with exception override · REX-0041
                             </p>
                           </div>
@@ -397,13 +411,13 @@ export default function FailureRecovery(){
               {/* Done banner */}
               {mode==="done-recovery"&&(
                 <div className="fade-in2" style={{marginTop:16,padding:"16px 18px",
-                  background:"rgba(16,185,129,0.05)",border:"1.5px solid #10B981",borderRadius:10}}>
-                  <p style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:4}}>
+                  background:"rgba(16,185,129,0.08)",border:"1.5px solid rgba(16,185,129,0.30)",borderRadius:10}}>
+                  <p style={{fontSize:14,fontWeight:700,color:"#34D399",marginBottom:4}}>
                     ✅ Full recovery completed — end-to-end
                   </p>
-                  <p style={{fontSize:12,color:"#6B7280",lineHeight:1.5}}>
+                  <p style={{fontSize:12,color:"#3D5068",lineHeight:1.5}}>
                     Workday rejection detected → AI re-routed → HRSD case raised → Manager approved →
-                    Exception granted → Retry succeeded → Coverage active · <strong>Zero manual triage required</strong>
+                    Exception granted → Retry succeeded → Coverage active · <strong style={{color:"#C8D4E4"}}>Zero manual triage required</strong>
                   </p>
                   <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
                     <span className="badge2 b-red">1 rejection</span>
@@ -416,11 +430,11 @@ export default function FailureRecovery(){
 
               {mode==="done-happy"&&(
                 <div className="fade-in2" style={{marginTop:16,padding:"14px 18px",
-                  background:"rgba(16,185,129,0.05)",border:"1.5px solid #10B981",borderRadius:10}}>
-                  <p style={{fontSize:13,fontWeight:700,color:"#059669",marginBottom:2}}>
+                  background:"rgba(16,185,129,0.08)",border:"1.5px solid rgba(16,185,129,0.30)",borderRadius:10}}>
+                  <p style={{fontSize:13,fontWeight:700,color:"#34D399",marginBottom:2}}>
                     ✅ Happy path completed — 4 steps · no exceptions required
                   </p>
-                  <p style={{fontSize:11,color:"#6B7280"}}>Try the <strong>Recovery Path</strong> to see how failure is handled.</p>
+                  <p style={{fontSize:11,color:"#3D5068"}}>Try the <strong style={{color:"#C8D4E4"}}>Recovery Path</strong> to see how failure is handled.</p>
                 </div>
               )}
             </div>
@@ -428,18 +442,18 @@ export default function FailureRecovery(){
             {/* Right: audit trail */}
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               <div className="card" style={{padding:"14px 16px"}}>
-                <p style={{fontSize:11,fontWeight:700,color:"#6B7280",textTransform:"uppercase",
-                  letterSpacing:"0.08em",fontFamily:"DM Mono",marginBottom:10}}>
+                <p style={{fontSize:11,fontWeight:700,color:"#3D5068",textTransform:"uppercase",
+                  letterSpacing:"0.08em",fontFamily:"'DM Mono',monospace",marginBottom:10}}>
                   Live Audit Trail
                 </p>
                 {auditLog.length===0&&(
-                  <p style={{fontSize:11,color:"#CBD5E1",fontFamily:"DM Mono"}}>Awaiting events…</p>
+                  <p style={{fontSize:11,color:"#3D5068",fontFamily:"'DM Mono',monospace"}}>Awaiting events…</p>
                 )}
                 <div style={{maxHeight:320,overflowY:"auto"}}>
                   {auditLog.map((a,i)=>(
                     <div key={i} className={`audit-row fade-in2`} style={{padding:"8px 8px"}}>
                       <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
-                        <span style={{fontSize:10,color:"#9CA3AF",fontFamily:"DM Mono"}}>{a.ts}</span>
+                        <span style={{fontSize:10,color:"#3D5068",fontFamily:"'DM Mono',monospace"}}>{a.ts}</span>
                         <span className={`badge2 b-${a.state==="pass"?"green":a.state==="fail"?"red":"amber"}`}
                           style={{fontSize:9}}>
                           {a.state.toUpperCase()}
@@ -449,9 +463,9 @@ export default function FailureRecovery(){
                           {a.sys}
                         </span>
                       </div>
-                      <p style={{fontSize:11,color:"#374151",lineHeight:1.3,fontFamily:"DM Mono"}}>{a.step}</p>
+                      <p style={{fontSize:11,color:"#C8D4E4",lineHeight:1.3,fontFamily:"'DM Mono',monospace"}}>{a.step}</p>
                       {a.state==="fail"&&(
-                        <p style={{fontSize:10,color:"#DC2626",fontFamily:"DM Mono",marginTop:2,lineHeight:1.3}}>
+                        <p style={{fontSize:10,color:"#F87171",fontFamily:"'DM Mono',monospace",marginTop:2,lineHeight:1.3}}>
                           {a.msg.slice(0,80)}…
                         </p>
                       )}
@@ -463,22 +477,22 @@ export default function FailureRecovery(){
               {/* Recovery stats */}
               {(mode==="recovery"||mode==="done-recovery")&&(
                 <div className="card" style={{padding:"14px 16px"}}>
-                  <p style={{fontSize:11,fontWeight:700,color:"#6B7280",textTransform:"uppercase",
-                    letterSpacing:"0.08em",fontFamily:"DM Mono",marginBottom:10}}>
+                  <p style={{fontSize:11,fontWeight:700,color:"#3D5068",textTransform:"uppercase",
+                    letterSpacing:"0.08em",fontFamily:"'DM Mono',monospace",marginBottom:10}}>
                     Recovery Metrics
                   </p>
                   {[
-                    {label:"Error detected",val:"< 1s",color:"#6B7280"},
-                    {label:"Re-route latency",val:"~700ms",color:"#6B7280"},
-                    {label:"HRSD case created",val:"Auto",color:"#059669"},
-                    {label:"Approval time",val:"~90s",color:"#D97706"},
-                    {label:"Total recovery",val:"~3 min",color:"#2563EB"},
-                    {label:"Manual steps",val:"0",color:"#059669"},
+                    {label:"Error detected",val:"< 1s",color:"#3D5068"},
+                    {label:"Re-route latency",val:"~700ms",color:"#3D5068"},
+                    {label:"HRSD case created",val:"Auto",color:"#34D399"},
+                    {label:"Approval time",val:"~90s",color:"#FCD34D"},
+                    {label:"Total recovery",val:"~3 min",color:"#60A5FA"},
+                    {label:"Manual steps",val:"0",color:"#34D399"},
                   ].map(m=>(
                     <div key={m.label} style={{display:"flex",justifyContent:"space-between",
                       alignItems:"center",marginBottom:7}}>
-                      <span style={{fontSize:12,color:"#6B7280"}}>{m.label}</span>
-                      <span style={{fontSize:12,fontWeight:700,color:m.color,fontFamily:"DM Mono"}}>{m.val}</span>
+                      <span style={{fontSize:12,color:"#3D5068"}}>{m.label}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:m.color,fontFamily:"'DM Mono',monospace"}}>{m.val}</span>
                     </div>
                   ))}
                 </div>
@@ -486,8 +500,8 @@ export default function FailureRecovery(){
 
               {/* Compliance note */}
               <div className="card-dark" style={{padding:"14px 16px"}}>
-                <p style={{fontSize:11,fontWeight:700,color:"#4A5A6A",textTransform:"uppercase",
-                  letterSpacing:"0.08em",fontFamily:"DM Mono",marginBottom:8}}>
+                <p style={{fontSize:11,fontWeight:700,color:"#3D5068",textTransform:"uppercase",
+                  letterSpacing:"0.08em",fontFamily:"'DM Mono',monospace",marginBottom:8}}>
                   Compliance Coverage
                 </p>
                 {[
@@ -498,8 +512,8 @@ export default function FailureRecovery(){
                   "GDPR: no PII exposed during error handling",
                 ].map((c,i)=>(
                   <div key={i} style={{display:"flex",gap:7,marginBottom:6,alignItems:"flex-start"}}>
-                    <span style={{color:"#10B981",fontSize:11,flexShrink:0}}>✓</span>
-                    <span style={{fontSize:11,color:"#4A5A6A",lineHeight:1.4,fontFamily:"DM Mono"}}>{c}</span>
+                    <span style={{color:"#34D399",fontSize:11,flexShrink:0}}>✓</span>
+                    <span style={{fontSize:11,color:"#3D5068",lineHeight:1.4,fontFamily:"'DM Mono',monospace"}}>{c}</span>
                   </div>
                 ))}
               </div>

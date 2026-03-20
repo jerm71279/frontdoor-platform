@@ -9,12 +9,6 @@ import {
   ResponsiveContainer, XAxis, YAxis, Tooltip
 } from "recharts";
 
-/* ── Fonts ── */
-const _f = document.createElement("link");
-_f.rel = "stylesheet";
-_f.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap";
-document.head.appendChild(_f);
-
 /* ── Tokens ── */
 const T = {
   navy:"#0B1120", navyMid:"#0F1829", navyCard:"#111927", navyHover:"#18253A",
@@ -105,7 +99,7 @@ const VALUE_METRICS = [
 /* ── Sub-components ── */
 function TabBar({ tabs, active, onChange }) {
   return (
-    <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.border}`, marginBottom: 24 }}>
+    <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.border}`, marginBottom: 0 }}>
       {tabs.map(t => (
         <button key={t} onClick={() => onChange(t)} style={{
           padding: "10px 18px", background: "none",
@@ -207,16 +201,6 @@ function OverviewTab() {
 
   return (
     <div>
-      {/* State of AI header */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>
-          State of AI
-        </div>
-        <div style={{ color: T.muted, fontSize: 13 }}>
-          Monitor the impact, risks, status, and usage of every type of AI in your enterprise.
-        </div>
-      </div>
-
       {/* Top 3 KPI row */}
       <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
         <KPICard label="Productivity" value={prodHrs + " hrs"} delta="13%" data={PROD_DATA} color={T.emerald} />
@@ -569,32 +553,49 @@ export default function AIControlTower() {
   const [tab, setTab] = useState("Overview");
   return (
     <div style={{ background: T.navy, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", color: T.text }}>
-      {/* Header */}
-      <div style={{ background: T.navyDeep, borderBottom: `1px solid ${T.border}`, padding: "0 32px", height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-            <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={T.gold} strokeWidth="1.5" />
-            <polygon points="16,8 24,12.5 24,21.5 16,26 8,21.5 8,12.5" fill={T.goldDim} stroke={T.gold} strokeWidth="0.7" />
-          </svg>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, color: T.gold }}>AI Control Tower</span>
-          <span style={{ color: T.muted, fontSize: 11 }}>· iOPEX TrustCore · Acme Corp</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 7, height: 7, borderRadius: "50%", background: T.emerald, boxShadow: `0 0 8px ${T.emerald}` }} />
-          <span style={{ color: T.emerald, fontSize: 11, fontFamily: "'DM Mono', monospace" }}>LIVE</span>
+
+      {/* ── Hero header — consistent with all surfaces ── */}
+      <div style={{
+        background: `linear-gradient(180deg, ${T.navyMid} 0%, ${T.navy} 100%)`,
+        borderBottom: `1px solid ${T.border}`,
+        padding: "40px 48px 0",
+      }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+            <div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 12,
+                background: T.goldDim, border: `1px solid ${T.goldBorder}`,
+                borderRadius: 4, padding: "3px 10px",
+              }}>
+                <span style={{ color: T.gold, fontSize: 10, fontFamily: "'DM Mono', monospace", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  TrustCore · AI Governance
+                </span>
+              </div>
+              <h1 style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: 38, fontWeight: 700, color: T.bright,
+                margin: "0 0 10px", letterSpacing: "-0.02em",
+              }}>
+                AI Control Tower
+              </h1>
+              <p style={{ color: T.muted, fontSize: 14, margin: "0 0 20px", maxWidth: 520, lineHeight: 1.6 }}>
+                Monitor the impact, risks, status, and usage of every type of AI in your enterprise.
+                Full ServiceNow AI Control Tower parity.
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 8 }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: T.emerald, boxShadow: `0 0 8px ${T.emerald}` }} />
+              <span style={{ color: T.emerald, fontSize: 11, fontFamily: "'DM Mono', monospace" }}>LIVE · Acme Corp</span>
+            </div>
+          </div>
+
+          {/* Tab navigation — sits at bottom of hero so it feels attached */}
+          <TabBar tabs={TABS} active={tab} onChange={setTab} />
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 28px" }}>
-        {/* Welcome */}
-        <div style={{ marginBottom: 8 }}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: T.bright }}>
-            Welcome to AI Control Tower
-          </h1>
-        </div>
-
-        {/* Tab navigation */}
-        <TabBar tabs={TABS} active={tab} onChange={setTab} />
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 48px" }}>
 
         {/* Tab content */}
         {tab === "Overview"            && <OverviewTab />}
