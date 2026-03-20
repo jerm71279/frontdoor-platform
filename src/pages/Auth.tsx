@@ -14,6 +14,21 @@ import { Separator } from "@/components/ui/separator";
 
 import { userProfileSchema, sanitizeText } from "@/lib/validation";
 
+/* ── Demo employees (Acme Inc test users) ── */
+const DEMO_USERS = [
+  { name: "Jordan Lee",        email: "jordan.lee@acmecorp.com",        dept: "IT",          role: "Sr. Software Engineer",        avatar: "JL", color: "#06B6D4" },
+  { name: "Maya Patel",        email: "maya.patel@acmecorp.com",        dept: "HR",          role: "HR Business Partner",          avatar: "MP", color: "#8B5CF6" },
+  { name: "Carlos Rodriguez",  email: "carlos.rodriguez@acmecorp.com",  dept: "Finance",     role: "Financial Analyst",            avatar: "CR", color: "#10B981" },
+  { name: "Sarah Kim",         email: "sarah.kim@acmecorp.com",         dept: "Legal",       role: "Associate Counsel",            avatar: "SK", color: "#F59E0B" },
+  { name: "Marcus Thompson",   email: "marcus.thompson@acmecorp.com",   dept: "Facilities",  role: "Office Manager",               avatar: "MT", color: "#38BDF8" },
+  { name: "Priya Singh",       email: "priya.singh@acmecorp.com",       dept: "Security",    role: "Security Analyst",             avatar: "PS", color: "#F43F5E" },
+  { name: "David Chen",        email: "david.chen@acmecorp.com",        dept: "Operations",  role: "Operations Manager",           avatar: "DC", color: "#84CC16" },
+  { name: "Rachel Foster",     email: "rachel.foster@acmecorp.com",     dept: "Marketing",   role: "Brand Manager",                avatar: "RF", color: "#EC4899" },
+  { name: "James Wilson",      email: "james.wilson@acmecorp.com",      dept: "IT",          role: "DevOps Engineer",              avatar: "JW", color: "#06B6D4" },
+  { name: "Aisha Johnson",     email: "aisha.johnson@acmecorp.com",     dept: "HR",          role: "Talent Acquisition Specialist",avatar: "AJ", color: "#8B5CF6" },
+];
+const DEMO_PASSWORD = "Acme@2026!";
+
 // Enhanced validation schemas with security requirements
 const loginSchema = z.object({
   email: z.string()
@@ -68,6 +83,7 @@ const Auth = () => {
   const signupCompany = "Acme Inc";
   const [resetEmail, setResetEmail] = useState("");
   const [showResetForm, setShowResetForm] = useState(false);
+  const [signingInAs, setSigningInAs] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -90,6 +106,21 @@ const Auth = () => {
   const redirectToDepartmentDashboard = async (_userId: string) => {
     // All employees go to the Employee Portal (FrontDoor)
     navigate("/portal");
+  };
+
+  const demoLoginAs = async (email: string, name: string) => {
+    setSigningInAs(email);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: DEMO_PASSWORD,
+      });
+      if (error) toast.error(`Could not sign in as ${name}: ${error.message}`);
+    } catch {
+      toast.error("Sign-in failed");
+    } finally {
+      setSigningInAs(null);
+    }
   };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
@@ -218,7 +249,90 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4"
+      style={{ background: "#0B1120", fontFamily: "'DM Sans',sans-serif" }}>
+
+      {/* ── DEMO USER SWITCHER ── */}
+      <div style={{ maxWidth: 860, margin: "0 auto", paddingTop: 32, paddingBottom: 24 }}>
+        <div style={{
+          background: "#111927", border: "1px solid rgba(232,160,32,0.22)",
+          borderRadius: 14, padding: "20px 24px",
+          boxShadow: "0 0 40px rgba(232,160,32,0.06)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="none">
+              <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke="#E8A020" strokeWidth="1.5"/>
+            </svg>
+            <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: "#E8A020", letterSpacing: "0.07em" }}>
+              DEMO · ACME INC — SIGN IN AS ANY EMPLOYEE
+            </span>
+          </div>
+          <p style={{ fontSize: 12, color: "#3D5068", marginBottom: 16, marginLeft: 26 }}>
+            Click any card to instantly authenticate as that employee and explore their portal.
+          </p>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+            gap: 8,
+          }}>
+            {DEMO_USERS.map(u => (
+              <button
+                key={u.email}
+                onClick={() => demoLoginAs(u.email, u.name)}
+                disabled={!!signingInAs}
+                style={{
+                  background: signingInAs === u.email ? u.color + "18" : "#0F1829",
+                  border: `1px solid ${signingInAs === u.email ? u.color + "60" : "rgba(255,255,255,0.06)"}`,
+                  borderRadius: 10, padding: "10px 12px", cursor: "pointer",
+                  textAlign: "left", transition: "all 0.15s",
+                  opacity: signingInAs && signingInAs !== u.email ? 0.45 : 1,
+                }}
+                onMouseEnter={e => {
+                  if (!signingInAs) {
+                    e.currentTarget.style.borderColor = u.color + "50";
+                    e.currentTarget.style.background = u.color + "12";
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (signingInAs !== u.email) {
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                    e.currentTarget.style.background = "#0F1829";
+                  }
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: u.color + "22", border: `1px solid ${u.color}40`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, fontWeight: 700, color: u.color,
+                    fontFamily: "'DM Mono',monospace", flexShrink: 0,
+                  }}>
+                    {signingInAs === u.email ? "…" : u.avatar}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 12, fontWeight: 600, color: "#ECF1FA",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>{u.name}</div>
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: 10, color: u.color, fontFamily: "'DM Mono',monospace",
+                  marginBottom: 2,
+                }}>{u.dept}</div>
+                <div style={{
+                  fontSize: 10, color: "#3D5068", lineHeight: 1.3,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>{u.role}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── STANDARD AUTH CARD ── */}
+      <div className="flex justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
@@ -426,6 +540,7 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
