@@ -64,6 +64,7 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
+  const [signupDepartment, setSignupDepartment] = useState("");
   const signupCompany = "Acme Inc";
   const [resetEmail, setResetEmail] = useState("");
   const [showResetForm, setShowResetForm] = useState(false);
@@ -86,54 +87,9 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const redirectToDepartmentDashboard = async (userId: string) => {
-    // Check if user has Super Admin/Admin role
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role_id, roles(name)")
-      .eq("user_id", userId);
-
-    let hasAdmin = roles?.some((ur: any) => ur.roles?.name === 'Super Admin' || ur.roles?.name === 'Admin');
-
-    if (!hasAdmin) {
-      const { data: rpcHasAdmin } = await supabase.rpc('has_role', {
-        _user_id: userId,
-        _role: 'admin'
-      });
-      hasAdmin = !!rpcHasAdmin;
-    }
-
-    if (hasAdmin) {
-      navigate("/admin");
-      return;
-    }
-
-    // Check user profile for department
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("department")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (profile?.department) {
-      const dashboardRoutes: Record<string, string> = {
-        compliance: "/dashboard/compliance",
-        it: "/dashboard/it",
-        operations: "/dashboard/operations",
-        hr: "/dashboard/hr",
-        finance: "/dashboard/finance",
-        executive: "/dashboard/executive"
-      };
-
-      const route = dashboardRoutes[profile.department];
-      if (route) {
-        navigate(route);
-        return;
-      }
-    }
-
-    // Default to home page
-    navigate("/");
+  const redirectToDepartmentDashboard = async (_userId: string) => {
+    // All employees go to the Employee Portal (FrontDoor)
+    navigate("/portal");
   };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
@@ -182,32 +138,8 @@ const Auth = () => {
       });
 
       if (error) {
-        // Log failed login attempt - no customer_id available yet
-        // Skip audit log for failed login to avoid foreign key constraint
         toast.error(error.message === 'Invalid login credentials' ? 'Invalid email or password' : error.message);
       } else {
-        // Log successful login - fetch customer_id first
-        if (data.user) {
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('customer_id')
-            .eq('user_id', data.user.id)
-            .single();
-
-          if (profileData?.customer_id) {
-            await supabase.from('audit_logs').insert({
-              user_id: data.user.id,
-              customer_id: profileData.customer_id,
-              system_name: 'auth',
-              action_type: 'login_success',
-              action_details: { 
-                email: validatedData.email,
-                timestamp: new Date().toISOString() 
-              },
-              compliance_tags: ['security', 'authentication']
-            });
-          }
-        }
         toast.success("Logged in successfully");
       }
     } catch (error) {
@@ -244,7 +176,6 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Validate inputs
       const validatedData = signupSchema.parse({
         fullName: signupName,
         companyName: signupCompany,
@@ -252,83 +183,26 @@ const Auth = () => {
         password: signupPassword,
       });
 
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: validatedData.email,
         password: validatedData.password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: `${window.location.origin}/portal`,
           data: {
             full_name: validatedData.fullName,
             company_name: validatedData.companyName,
-          }
-        }
+            department: signupDepartment || "General",
+          },
+        },
       });
 
       if (error) {
-        // Log failed signup - no customer_id available yet
-        // Skip audit log to avoid foreign key constraint
         toast.error(error.message);
-        throw error;
+        return;
       }
-      
-      if (data.user) {
-        // Create customer record
-        const { data: customerData, error: customerError } = await supabase
-          .from("customers")
-          .insert({
-            user_id: data.user.id,
-            contact_name: validatedData.fullName,
-            company_name: validatedData.companyName,
-            email: validatedData.email,
-          })
-          .select()
-          .single();
 
-        if (customerError) throw customerError;
-
-        // Create customer customization
-        if (customerData) {
-        const { error: customizationError } = await supabase
-            .from("customer_customizations")
-            .insert({
-              customer_id: customerData.id,
-              enabled_features: ["dashboard", "integrations", "compliance", "ml_insights"],
-              default_dashboard: "executive",
-            });
-
-          if (customizationError) throw customizationError;
-        }
-
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from("user_profiles")
-          .insert({
-            user_id: data.user.id,
-            full_name: validatedData.fullName,
-            department: null,
-            customer_id: customerData?.id || null
-          });
-
-        if (profileError) throw profileError;
-
-        // Log successful signup
-        await supabase.from('audit_logs').insert({
-          user_id: data.user.id,
-          customer_id: customerData.id,
-          system_name: 'auth',
-          action_type: 'signup_success',
-          action_details: { 
-            email: validatedData.email,
-            company_name: validatedData.companyName,
-            timestamp: new Date().toISOString() 
-          },
-          compliance_tags: ['security', 'authentication']
-        });
-
-        toast.success("Account created successfully! Redirecting to your dashboard...");
-      }
+      // AuthContext.loadProfile will auto-create employee_profiles on first session
+      toast.success("Account created! Check your email to confirm, then sign in.");
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -488,6 +362,25 @@ const Auth = () => {
                     onChange={(e) => setSignupName(e.target.value)}
                     required
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-dept">Department</Label>
+                  <Select value={signupDepartment} onValueChange={setSignupDepartment}>
+                    <SelectTrigger id="signup-dept">
+                      <SelectValue placeholder="Select your department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IT">IT</SelectItem>
+                      <SelectItem value="HR">HR</SelectItem>
+                      <SelectItem value="Finance">Finance</SelectItem>
+                      <SelectItem value="Legal">Legal</SelectItem>
+                      <SelectItem value="Facilities">Facilities</SelectItem>
+                      <SelectItem value="Security">Security</SelectItem>
+                      <SelectItem value="Operations">Operations</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                      <SelectItem value="General">Other / General</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
