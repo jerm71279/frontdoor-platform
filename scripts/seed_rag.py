@@ -468,6 +468,8 @@ Annual security training required by March 31 each year.""",
 
 def embed_text(text: str) -> list[float]:
     """Embed text using Gemini embedding-001 at 768 dimensions."""
+    # Gemini embedding-001 has a ~2048 token limit; truncate to ~2500 chars to stay safe
+    text = text[:2500]
     payload = {
         "model": "models/gemini-embedding-001",
         "content": {"parts": [{"text": text}]},
