@@ -378,13 +378,42 @@ export default function EmployeeDashboard() {
   },[requests]);
 
   function advance(id: string, toStatus: string, stepIdx: number) {
-    setRequests(prev=>prev.map(r=>{
-      if (r.id!==id) return r;
-      const steps = r.steps.map((s:any,i:number)=>({
-        ...s, done:i<stepIdx, active:i===stepIdx, time:i<stepIdx?s.time||"just now":s.time
-      }));
-      return {...r, status:toStatus, steps};
-    }));
+    setRequests(prev=>{
+      const updated = prev.map(r=>{
+        if (r.id!==id) return r;
+        const steps = r.steps.map((s:any,i:number)=>({
+          ...s, done:i<stepIdx, active:i===stepIdx, time:i<stepIdx?s.time||"just now":s.time
+        }));
+        return {...r, status:toStatus, steps};
+      });
+
+      /* ── Auto-ingest completed workflows into RAG ── */
+      if (toStatus==="completed") {
+        const req = updated.find(r=>r.id===id);
+        if (req) ingestWorkflow(req);
+      }
+
+      return updated;
+    });
+  }
+
+  function ingestWorkflow(req: any) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string|undefined;
+    const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string|undefined;
+    if (!supabaseUrl || !anonKey) return;
+
+    fetch(`${supabaseUrl}/functions/v1/ingest-workflow-resolution`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+      body: JSON.stringify({
+        workflow_id: req.id,
+        domain:      req.domain,
+        title:       req.title,
+        resolution:  req.summary || null,
+        steps:       req.steps,
+        tenant_id:   "demo",
+      }),
+    }).catch(()=>{ /* fire and forget — never block UI */ });
   }
 
   async function submit(text: string) {
@@ -394,8 +423,30 @@ export default function EmployeeDashboard() {
 
     const domain = classifyDomain(text);
 
-    /* ── Question? Route to KB, not ticket ── */
+    /* ── Question? Route to RAG, not ticket ── */
     if (isQuestion(text)) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string|undefined;
+      const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string|undefined;
+
+      if (supabaseUrl && anonKey) {
+        try {
+          const res = await fetch(`${supabaseUrl}/functions/v1/query-knowledge-base`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+            body: JSON.stringify({ question: text, domain, tenant_id: "demo" }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.answer) {
+              setKbAnswer({ domain, answer: data.answer, sources: data.sources || [] });
+              setSending(false);
+              return;
+            }
+          }
+        } catch (_) { /* fall through to static KB */ }
+      }
+
+      /* Static fallback — works without Supabase connected */
       const kb = KB_ANSWERS[domain] || KB_ANSWERS.Operations;
       setKbAnswer({ domain, ...kb });
       setSending(false);
