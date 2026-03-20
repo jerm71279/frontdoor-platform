@@ -1,541 +1,609 @@
-import { useState, useEffect, useRef } from "react";
-import { LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+/**
+ * iOPEX AI Control Tower
+ * Functionality mirrors ServiceNow AI Control Tower:
+ * State of AI · AI Inventory · Value · Adoption · Risk & Compliance · Security & Privacy · AI Strategy
+ */
+import { useState, useEffect } from "react";
+import {
+  AreaChart, Area, BarChart, Bar, Cell,
+  ResponsiveContainer, XAxis, YAxis, Tooltip
+} from "recharts";
 
-/* ── INJECT FONTS & CSS ───────────────────────────────────────────── */
-const style = document.createElement("style");
-style.textContent = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  ::-webkit-scrollbar{width:3px;height:3px;}
-  ::-webkit-scrollbar-track{background:transparent;}
-  ::-webkit-scrollbar-thumb{background:#F59E0B44;border-radius:2px;}
+/* ── Fonts ── */
+const _f = document.createElement("link");
+_f.rel = "stylesheet";
+_f.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap";
+document.head.appendChild(_f);
 
-  .act-root{
-    font-family:'IBM Plex Sans',monospace;
-    background:#060A14;color:#C8D4E8;
-    min-height:100vh;overflow:hidden;position:relative;
-  }
-  .act-root::before{
-    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-    background:
-      radial-gradient(ellipse 60% 40% at 10% 10%, rgba(245,158,11,0.05) 0%,transparent 60%),
-      radial-gradient(ellipse 50% 35% at 90% 90%, rgba(6,182,212,0.04) 0%,transparent 55%);
-  }
-  .scanlines{
-    position:fixed;inset:0;pointer-events:none;z-index:1;
-    background:repeating-linear-gradient(
-      0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px
-    );
-  }
-  .mono{font-family:'IBM Plex Mono',monospace;}
+/* ── Tokens ── */
+const T = {
+  navy:"#0B1120", navyMid:"#0F1829", navyCard:"#111927", navyHover:"#18253A",
+  navyDeep:"#080E1A", gold:"#E8A020", goldDim:"rgba(232,160,32,0.10)",
+  goldBorder:"rgba(232,160,32,0.22)", teal:"#06B6D4", tealDim:"rgba(6,182,212,0.10)",
+  violet:"#8B5CF6", violetDim:"rgba(139,92,246,0.10)", emerald:"#10B981",
+  emeraldDim:"rgba(16,185,129,0.10)", rose:"#F43F5E", roseDim:"rgba(244,63,94,0.10)",
+  amber:"#F59E0B", amberDim:"rgba(245,158,11,0.10)", sky:"#38BDF8",
+  text:"#C8D4E4", muted:"#3D5068", bright:"#ECF1FA",
+  border:"rgba(255,255,255,0.06)", borderMid:"rgba(255,255,255,0.03)",
+};
 
-  .panel{
-    background:rgba(255,255,255,0.025);
-    border:1px solid rgba(245,158,11,0.12);
-    border-radius:4px;
-  }
-  .panel-amber{border-color:rgba(245,158,11,0.25);}
-  .panel-teal {border-color:rgba(6,182,212,0.2);}
-  .panel-red  {border-color:rgba(239,68,68,0.25);}
-  .panel-green{border-color:rgba(16,185,129,0.2);}
+/* ── Sparkline data generators ── */
+function genTrend(base, variance, points = 30) {
+  return Array.from({ length: points }, (_, i) => ({
+    i, v: Math.max(0, base + (Math.random() - 0.4) * variance + (i / points) * base * 0.15)
+  }));
+}
 
-  .tab-btn{
-    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;
-    padding:5px 14px;border-radius:2px;cursor:pointer;
-    background:transparent;border:1px solid transparent;
-    color:#5A6A7A;transition:all 0.15s;letter-spacing:0.06em;text-transform:uppercase;
-  }
-  .tab-btn:hover{color:#C8D4E8;border-color:rgba(245,158,11,0.2);}
-  .tab-btn.active{color:#F59E0B;border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.06);}
+const PROD_DATA    = genTrend(1600, 400);
+const USAGE_DATA   = genTrend(17000, 4000);
+const ADOPTION_DATA= genTrend(62, 12);
+const VALUE_DATA   = genTrend(420, 80);
 
-  .risk-high  {color:#EF4444;}
-  .risk-med   {color:#F59E0B;}
-  .risk-low   {color:#10B981;}
-  .risk-info  {color:#06B6D4;}
-
-  .badge{
-    display:inline-flex;align-items:center;gap:4px;
-    padding:2px 8px;border-radius:2px;font-size:10px;
-    font-family:'IBM Plex Mono',monospace;font-weight:500;letter-spacing:0.04em;
-  }
-  .badge-amber{background:rgba(245,158,11,0.12);color:#F59E0B;border:1px solid rgba(245,158,11,0.25);}
-  .badge-green{background:rgba(16,185,129,0.1); color:#10B981;border:1px solid rgba(16,185,129,0.2);}
-  .badge-red  {background:rgba(239,68,68,0.1);  color:#EF4444;border:1px solid rgba(239,68,68,0.2);}
-  .badge-teal {background:rgba(6,182,212,0.1);  color:#06B6D4;border:1px solid rgba(6,182,212,0.2);}
-  .badge-gray {background:rgba(255,255,255,0.05);color:#5A6A7A;border:1px solid rgba(255,255,255,0.08);}
-
-  .blink{animation:blink 1.4s step-start infinite;}
-  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
-
-  .fade-in{animation:fadeUp 0.3s ease forwards;}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-
-  .ticker{animation:ticker 0.4s ease;}
-  @keyframes ticker{from{color:#F59E0B;}to{color:inherit;}}
-
-  .row-hover{transition:background 0.12s;}
-  .row-hover:hover{background:rgba(245,158,11,0.04);}
-
-  .compliance-ring{transform:rotate(-90deg);}
-  .ring-track{stroke:rgba(255,255,255,0.06);}
-
-  .pulse-dot{
-    width:7px;height:7px;border-radius:50%;display:inline-block;
-  }
-  .pulse-green{background:#10B981;box-shadow:0 0 6px rgba(16,185,129,0.7);}
-  .pulse-amber{background:#F59E0B;box-shadow:0 0 6px rgba(245,158,11,0.7);}
-  .pulse-red  {background:#EF4444;box-shadow:0 0 6px rgba(239,68,68,0.7);}
-  .pulse-teal {background:#06B6D4;box-shadow:0 0 6px rgba(6,182,212,0.7);}
-
-  .divline{border:none;border-top:1px solid rgba(245,158,11,0.1);margin:10px 0;}
-`;
-document.head.appendChild(style);
-
-/* ── DATA ─────────────────────────────────────────────────────────── */
-const genSparkline = (n=20, base=60, variance=30) =>
-  Array.from({length:n},(_,i)=>({t:i,v:Math.max(0,base+Math.sin(i/3)*variance+(Math.random()-0.5)*20)}));
-
-const AUDIT_LOGS = [
-  {id:"EVT-9912",ts:"14:23:07",user:"J.Smith",sys:"Azure Entra",action:"SSO auth success",risk:"LOW",model:"N/A",policy:"PASS",detail:"MFA verified · Role: Security Engineer"},
-  {id:"EVT-9911",ts:"14:23:06",user:"J.Smith",sys:"AI Engine",action:"Intent classification",risk:"LOW",model:"claude-sonnet-4-6",policy:"PASS",detail:"Confidence 97% · Token use: 412"},
-  {id:"EVT-9910",ts:"14:23:05",user:"J.Smith",sys:"ServiceNow",action:"CMDB asset lookup",risk:"LOW",model:"N/A",policy:"PASS",detail:"ThinkPad X1 #SN-7741 · Read-only"},
-  {id:"EVT-9909",ts:"14:22:58",user:"A.Kumar",sys:"Workday",action:"Benefits data read",risk:"MED",model:"claude-sonnet-4-6",policy:"PASS",detail:"PII accessed · Masked in response"},
-  {id:"EVT-9908",ts:"14:22:51",user:"T.Ramos",sys:"Azure IAM",action:"PIM activation request",risk:"HIGH",model:"N/A",policy:"REVIEW",detail:"Salesforce Prod · Awaiting approval"},
-  {id:"EVT-9907",ts:"14:22:44",user:"M.Singh",sys:"AI Engine",action:"Prompt injection detected",risk:"HIGH",model:"claude-sonnet-4-6",policy:"BLOCK",detail:"Pattern: SQL injection attempt · Blocked"},
-  {id:"EVT-9906",ts:"14:22:37",user:"D.Okonkwo",sys:"ServiceNow",action:"Change ticket create",risk:"LOW",model:"N/A",policy:"PASS",detail:"REQ0088241 · Auto-approved"},
-  {id:"EVT-9905",ts:"14:22:30",user:"L.Chen",sys:"Workday",action:"Payroll query DENIED",risk:"HIGH",model:"claude-sonnet-4-6",policy:"BLOCK",detail:"Insufficient clearance · Policy: HR-PAY-03"},
-  {id:"EVT-9904",ts:"14:22:22",user:"J.Smith",sys:"Azure Entra",action:"Session refresh",risk:"LOW",model:"N/A",policy:"PASS",detail:"Token renewed · TTL: 3600s"},
-  {id:"EVT-9903",ts:"14:22:15",user:"R.Torres",sys:"AI Engine",action:"Model drift alert",risk:"MED",model:"claude-haiku-4-5",policy:"WARN",detail:"Accuracy drop 4.2% · Threshold: 3%"},
+/* ── Top AI Assets ── */
+const TOP_ASSETS = [
+  { name: "Chat Summarization",       usage: 130, color: T.teal },
+  { name: "Resolution Notes",         usage: 95,  color: T.violet },
+  { name: "Incident Summarization",   usage: 80,  color: T.emerald },
+  { name: "HR Case Summarization",    usage: 55,  color: T.gold },
+  { name: "Knowledge Base Generation",usage: 35,  color: T.amber },
 ];
 
-const POLICY_DECISIONS = [
-  {id:"POL-441",ts:"14:23:07",rule:"RBAC-ENFORCE-01",action:"ALLOW",user:"J.Smith",resource:"ServiceNow CMDB",reason:"Role 'Security Eng' has read access",latency:"8ms"},
-  {id:"POL-440",ts:"14:22:58",rule:"PII-MASK-03",action:"REDACT",user:"A.Kumar",resource:"Workday Benefits API",reason:"PII fields masked per GDPR policy",latency:"12ms"},
-  {id:"POL-439",ts:"14:22:51",rule:"PIM-JIT-02",action:"ESCALATE",user:"T.Ramos",resource:"Salesforce Prod",reason:"Privilege exceeds auto-approve threshold",latency:"3ms"},
-  {id:"POL-438",ts:"14:22:44",rule:"THREAT-DETECT-07",action:"BLOCK",user:"M.Singh",resource:"AI Engine",reason:"Injection pattern matched signature TH-0091",latency:"2ms"},
-  {id:"POL-437",ts:"14:22:37",rule:"CHANGE-MGMT-01",action:"ALLOW",user:"D.Okonkwo",resource:"ServiceNow",reason:"Change within auto-approve scope",latency:"5ms"},
-  {id:"POL-436",ts:"14:22:30",rule:"DATA-CLASS-HR-PAY-03",action:"BLOCK",user:"L.Chen",resource:"Workday Payroll",reason:"User lacks HR-Finance entitlement",latency:"4ms"},
+/* ── AI Inventory counts ── */
+const INVENTORY = [
+  { label: "AI Agents",     value: 124, delta: "+35", color: T.teal,    icon: "◎" },
+  { label: "Models",        value: 6,   delta: "+2",  color: T.violet,  icon: "◈" },
+  { label: "Workflows",     value: 64,  delta: "+12", color: T.emerald, icon: "⟳" },
+  { label: "Data Sources",  value: 144, delta: "+18", color: T.gold,    icon: "◬" },
 ];
 
-const MODELS = [
-  {name:"claude-sonnet-4-6",provider:"Anthropic",role:"Primary reasoning",requests:1842,accuracy:96.4,latency:"220ms",cost:"$0.014",drift:1.2,status:"HEALTHY"},
-  {name:"claude-haiku-4-5",provider:"Anthropic",role:"Fast classification",requests:4129,accuracy:92.1,latency:"48ms",cost:"$0.002",drift:4.2,status:"WARN"},
-  {name:"gpt-4o",provider:"Azure OpenAI",role:"Fallback / redundancy",requests:203,accuracy:94.8,latency:"310ms",cost:"$0.021",drift:0.8,status:"HEALTHY"},
-  {name:"text-embedding-3",provider:"Azure OpenAI",role:"Semantic search",requests:9841,accuracy:99.1,latency:"22ms",cost:"$0.0001",drift:0.1,status:"HEALTHY"},
+/* ── All Systems ── */
+const ALL_SYSTEMS = [
+  { provider: "Gemini 2.0 Flash",   system: "Signal Engine / Intent",  calls: "6,101", trend: "+22%", status: "healthy" },
+  { provider: "claude-sonnet-4-6",  system: "WorkStream Orchestrator",  calls: "1,847", trend: "+8%",  status: "healthy" },
+  { provider: "claude-haiku-4-5",   system: "Fast routing / Notify",    calls: "4,203", trend: "+14%", status: "healthy" },
+  { provider: "Workday API",        system: "HR · Benefits · Leave",    calls: "2,341", trend: "+5%",  status: "healthy" },
+  { provider: "ServiceNow ITSM",    system: "IT Tickets · Changes",     calls: "1,892", trend: "+11%", status: "healthy" },
+  { provider: "Microsoft 365",      system: "Teams · Mail · Calendar",  calls: "3,104", trend: "+19%", status: "healthy" },
+  { provider: "Jira / Confluence",  system: "Engineering Requests",     calls: "892",   trend: "+6%",  status: "healthy" },
+  { provider: "SAP SuccessFactors", system: "Finance · Procurement",    calls: "541",   trend: "+3%",  status: "degraded" },
 ];
 
-const COMPLIANCE = [
-  {framework:"NIST AI RMF",score:89,controls:42,open:5,critical:1,color:"#06B6D4"},
-  {framework:"EU AI Act",score:76,controls:38,open:9,critical:2,color:"#F59E0B"},
-  {framework:"ISO/IEC 42001",score:93,controls:55,open:4,critical:0,color:"#10B981"},
-  {framework:"SOC 2 Type II",score:98,controls:61,open:1,critical:0,color:"#A78BFA"},
+/* ── My Tasks ── */
+const MY_TASKS = [
+  { type: "recommendation", title: "8 AI agents have exceeded drift threshold (>3%)",
+    detail: "Gemini 2.0 Flash classification accuracy dropped to 91.3%. Review training data or switch routing to claude-haiku.",
+    priority: "Medium", by: "Signal Engine", created: "Mar 19, 2026" },
+  { type: "task", title: "Onboard 3 new workflow agents for HR onboarding",
+    detail: "New hire onboarding flow requires: equipment provisioning agent, Workday profile agent, badge access agent.",
+    priority: "Low", by: "Sarah Park", created: "Mar 18, 2026" },
+  { type: "alert", title: "SAP SuccessFactors connector degraded",
+    detail: "Finance and Procurement requests failing intermittently. 23 requests queued. Check OAuth token expiry.",
+    priority: "High", by: "Nexus Monitor", created: "Mar 19, 2026" },
+  { type: "recommendation", title: "Enable AI Summarization for Legal domain",
+    detail: "Legal requests have 0% AI assist coverage. 45 manual cases last month could be auto-triaged.",
+    priority: "Low", by: "AI Strategy", created: "Mar 17, 2026" },
 ];
 
-/* ── COMPLIANCE RING ──────────────────────────────────────────────── */
-function Ring({score,color,size=64}){
-  const r=24,circ=2*Math.PI*r;
-  const fill=circ*(1-score/100);
-  return(
-    <svg width={size} height={size} viewBox="0 0 60 60">
-      <circle cx="30" cy="30" r={r} fill="none" strokeWidth="5" stroke="rgba(255,255,255,0.06)"/>
-      <circle cx="30" cy="30" r={r} fill="none" strokeWidth="5" stroke={color}
-        strokeDasharray={circ} strokeDashoffset={fill} strokeLinecap="round"
-        style={{transform:"rotate(-90deg)",transformOrigin:"50% 50%",transition:"stroke-dashoffset 1s ease"}}/>
-      <text x="30" y="34" textAnchor="middle" fill={color}
-        fontSize="12" fontWeight="600" fontFamily="IBM Plex Mono,monospace">{score}%</text>
+/* ── Risk & Compliance items ── */
+const RISKS = [
+  { framework: "NIST AI RMF",  score: 87, issues: 3, critical: 0, color: T.teal },
+  { framework: "EU AI Act",    score: 79, issues: 5, critical: 1, color: T.amber },
+  { framework: "ISO 42001",    score: 92, issues: 2, critical: 0, color: T.emerald },
+  { framework: "SOC 2 Type II",score: 95, issues: 1, critical: 0, color: T.violet },
+];
+
+/* ── Value metrics ── */
+const VALUE_METRICS = [
+  { label: "Productivity hours saved",    value: "52,179 hrs", delta: "+13%", color: T.teal },
+  { label: "Requests auto-resolved",      value: "8,841",      delta: "+22%", color: T.emerald },
+  { label: "Avg resolution time",         value: "1.8 hrs",    delta: "-41%", color: T.violet },
+  { label: "Manual triage eliminated",    value: "94%",        delta: "+6pts",color: T.gold },
+  { label: "Employee satisfaction (NPS)", value: "72",         delta: "+8pts",color: T.sky },
+  { label: "Cost savings (est.)",         value: "$1.2M",      delta: "vs manual", color: T.emerald },
+];
+
+/* ── Sub-components ── */
+function TabBar({ tabs, active, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.border}`, marginBottom: 24 }}>
+      {tabs.map(t => (
+        <button key={t} onClick={() => onChange(t)} style={{
+          padding: "10px 18px", background: "none",
+          border: "none", borderBottom: active === t ? `2px solid ${T.gold}` : "2px solid transparent",
+          color: active === t ? T.gold : T.muted, cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: active === t ? 600 : 400,
+          transition: "all 0.15s", marginBottom: -1,
+        }}>{t}</button>
+      ))}
+    </div>
+  );
+}
+
+function KPICard({ label, value, delta, deltaUp = true, data, color, children }) {
+  return (
+    <div style={{
+      background: T.navyCard, border: `1px solid ${T.border}`,
+      borderRadius: 12, padding: "20px 22px", flex: 1,
+    }}>
+      <div style={{ color: T.muted, fontSize: 12, marginBottom: 8 }}>{label}</div>
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 28, fontWeight: 700, color: T.bright, marginBottom: 4 }}>
+        {value}
+      </div>
+      {delta && (
+        <div style={{ color: deltaUp ? T.emerald : T.rose, fontSize: 12, marginBottom: 12 }}>
+          {deltaUp ? "↑" : "↓"} {delta} · last 30 days
+        </div>
+      )}
+      {data && (
+        <ResponsiveContainer width="100%" height={48}>
+          <AreaChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id={`g-${label}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color || T.emerald} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={color || T.emerald} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <Area type="monotone" dataKey="v" stroke={color || T.emerald} strokeWidth={1.5}
+              fill={`url(#g-${label})`} dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function CounterCard({ label, value, delta, color, icon }) {
+  return (
+    <div style={{
+      background: T.navyCard, border: `1px solid ${T.border}`,
+      borderRadius: 12, padding: "18px 20px", flex: 1,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ color: T.muted, fontSize: 12 }}>{label}</div>
+        <span style={{ fontSize: 18, color: color }}>{icon}</span>
+      </div>
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 34, fontWeight: 700, color: color, marginBottom: 6 }}>
+        {value.toLocaleString()}
+      </div>
+      <div style={{ color: T.emerald, fontSize: 12 }}>↑ {delta} last 30 days</div>
+    </div>
+  );
+}
+
+function PriorityBadge({ level }) {
+  const c = { High: T.rose, Medium: T.amber, Low: T.teal }[level] || T.muted;
+  return (
+    <span style={{
+      background: c + "18", color: c, border: `1px solid ${c}30`,
+      borderRadius: 4, padding: "2px 8px", fontSize: 10,
+      fontFamily: "'DM Mono', monospace", fontWeight: 700,
+    }}>{level}</span>
+  );
+}
+
+function RingSmall({ score, color, size = 52 }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+  return (
+    <svg width={size} height={size}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color + "22"} strokeWidth={6} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={6}
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: "stroke-dasharray 1s" }} />
+      <text x={size / 2} y={size / 2 + 4} textAnchor="middle"
+        fill={color} fontSize={11} fontWeight={700} fontFamily="'DM Mono',monospace">{score}</text>
     </svg>
   );
 }
 
-/* ── LIVE TICKER ──────────────────────────────────────────────────── */
-function useTicker(init,interval=3000){
-  const [val,setVal]=useState(init);
-  useEffect(()=>{
-    const t=setInterval(()=>setVal(v=>v+Math.floor(Math.random()*3)),interval);
-    return()=>clearInterval(t);
-  },[interval]);
-  return val;
-}
+/* ── TAB VIEWS ── */
+function OverviewTab() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick(p => p + 1), 3000); return () => clearInterval(t); }, []);
+  const prodHrs   = (52179 + tick * 4).toLocaleString();
+  const totalUse  = (549254 + tick * 12).toLocaleString();
 
-/* ── MAIN ─────────────────────────────────────────────────────────── */
-export default function AIControlTower(){
-  const [tab,setTab]=useState("overview");
-  const [logFilter,setLogFilter]=useState("ALL");
-  const [clock,setClock]=useState(new Date());
-  const totalReq=useTicker(47823);
-  const blocked=useTicker(23);
-  const policies=useTicker(1204);
-  const [sparkData]=useState(()=>genSparkline(30,80,25));
-  const [volData]=useState(()=>genSparkline(24,200,80));
-  const [logs,setLogs]=useState(AUDIT_LOGS);
+  return (
+    <div>
+      {/* State of AI header */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>
+          State of AI
+        </div>
+        <div style={{ color: T.muted, fontSize: 13 }}>
+          Monitor the impact, risks, status, and usage of every type of AI in your enterprise.
+        </div>
+      </div>
 
-  useEffect(()=>{const t=setInterval(()=>setClock(new Date()),1000);return()=>clearInterval(t);},[]);
+      {/* Top 3 KPI row */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
+        <KPICard label="Productivity" value={prodHrs + " hrs"} delta="13%" data={PROD_DATA} color={T.emerald} />
+        <KPICard label="Total AI usage" value={totalUse} delta="20%" data={USAGE_DATA} color={T.teal} />
 
-  const TABS=["overview","audit","policy","models","compliance"];
-  const filteredLogs=logFilter==="ALL"?logs:logs.filter(l=>l.risk===logFilter||l.policy===logFilter);
-
-  return(
-    <div className="act-root" style={{minHeight:"100vh",overflowY:"auto"}}>
-      <div className="scanlines"/>
-      <div style={{position:"relative",zIndex:2,maxWidth:1200,margin:"0 auto",padding:"16px 16px 40px"}}>
-
-        {/* ── TOPBAR ── */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,
-          borderBottom:"1px solid rgba(245,158,11,0.12)",paddingBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:16}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:3,height:28,background:"#F59E0B",borderRadius:2}}/>
-              <div>
-                <p style={{fontSize:14,fontWeight:700,color:"#F59E0B",fontFamily:"IBM Plex Mono",letterSpacing:"0.06em"}}>
-                  AI CONTROL TOWER
-                </p>
-                <p style={{fontSize:10,color:"#3A4A5A",fontFamily:"IBM Plex Mono",letterSpacing:"0.08em"}}>
-                  GOVERNANCE · RISK · COMPLIANCE
-                </p>
+        {/* Top 5 AI Assets */}
+        <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, padding: "20px 22px", flex: 1 }}>
+          <div style={{ color: T.muted, fontSize: 12, marginBottom: 14 }}>Top 5 AI Assets by usage</div>
+          {TOP_ASSETS.map(a => (
+            <div key={a.name} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <div style={{ color: T.muted, fontSize: 11, width: 160, flexShrink: 0 }}>{a.name}</div>
+              <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${(a.usage / 130) * 100}%`, background: a.color, borderRadius: 3, transition: "width 1s" }} />
+              </div>
+              <div style={{ color: a.color, fontSize: 11, fontFamily: "'DM Mono', monospace", width: 40, textAlign: "right" }}>
+                {a.usage}k
               </div>
             </div>
-            <div style={{display:"flex",gap:8}}>
-              <span className="badge badge-green">● LIVE</span>
-              <span className="badge badge-amber">NIST AI RMF</span>
-              <span className="badge badge-teal">EU AI Act</span>
-            </div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <p className="mono" style={{fontSize:14,color:"#F59E0B",letterSpacing:"0.1em"}}>
-              {clock.toLocaleTimeString("en-US",{hour12:false})}
-            </p>
-            <p className="mono" style={{fontSize:10,color:"#3A4A5A"}}>UTC-05:00 · CONTOSO CORP</p>
-          </div>
-        </div>
-
-        {/* ── TABS ── */}
-        <div style={{display:"flex",gap:4,marginBottom:16}}>
-          {TABS.map(t=>(
-            <button key={t} className={`tab-btn${tab===t?" active":""}`} onClick={()=>setTab(t)}>
-              {t}
-            </button>
           ))}
         </div>
+      </div>
 
-        {/* ══ OVERVIEW TAB ══ */}
-        {tab==="overview"&&(
-          <div className="fade-in">
-            {/* KPI Row */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-              {[
-                {label:"TOTAL REQUESTS",val:totalReq.toLocaleString(),sub:"Last 24h",color:"#06B6D4",dot:"pulse-teal"},
-                {label:"POLICY BLOCKS",val:blocked,sub:"Active threats mitigated",color:"#EF4444",dot:"pulse-red"},
-                {label:"POLICIES ENFORCED",val:policies.toLocaleString(),sub:"Across all agents",color:"#10B981",dot:"pulse-green"},
-                {label:"OPEN RISK ISSUES",val:"14",sub:"3 critical · 11 medium",color:"#F59E0B",dot:"pulse-amber"},
-              ].map(k=>(
-                <div key={k.label} className="panel" style={{padding:"14px 16px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-                    <span className={`pulse-dot ${k.dot}`}/>
-                    <span className="mono" style={{fontSize:9,color:"#3A4A5A",letterSpacing:"0.08em"}}>{k.label}</span>
-                  </div>
-                  <p className="mono" style={{fontSize:22,fontWeight:600,color:k.color,letterSpacing:"0.04em"}}>{k.val}</p>
-                  <p style={{fontSize:11,color:"#3A4A5A",marginTop:2}}>{k.sub}</p>
-                </div>
+      {/* Inventory counters row */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
+        {INVENTORY.map(inv => <CounterCard key={inv.label} {...inv} />)}
+      </div>
+
+      {/* Bottom 2-col */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 14 }}>
+        {/* All Systems */}
+        <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: T.bright, fontSize: 13, fontWeight: 600 }}>All Systems</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              {["Provider", "Systems", "Past 30 days", "Trend"].map(f => (
+                <span key={f} style={{ fontSize: 10, color: T.muted, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.04)" }}>{f}</span>
               ))}
             </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:14}}>
-              {/* Request volume chart */}
-              <div className="panel" style={{padding:"14px 16px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                  <p className="mono" style={{fontSize:11,color:"#5A6A7A",letterSpacing:"0.08em",textTransform:"uppercase"}}>
-                    Request Volume · 24h
-                  </p>
-                  <span className="badge badge-teal">LIVE</span>
-                </div>
-                <ResponsiveContainer width="100%" height={100}>
-                  <AreaChart data={volData}>
-                    <defs>
-                      <linearGradient id="vg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.2}/>
-                        <stop offset="100%" stopColor="#06B6D4" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="v" stroke="#06B6D4" strokeWidth={1.5} fill="url(#vg)" dot={false}/>
-                    <XAxis dataKey="t" hide/>
-                    <YAxis hide/>
-                    <Tooltip
-                      contentStyle={{background:"#0A0E1A",border:"1px solid rgba(6,182,212,0.2)",borderRadius:4,fontSize:11,fontFamily:"IBM Plex Mono"}}
-                      labelStyle={{color:"#5A6A7A"}} itemStyle={{color:"#06B6D4"}}
-                      formatter={v=>[Math.round(v)+" req/h",""]}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Agent health */}
-              <div className="panel" style={{padding:"14px 16px"}}>
-                <p className="mono" style={{fontSize:11,color:"#5A6A7A",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
-                  Agent Health
-                </p>
-                {[
-                  {name:"EmployeeWorks AI",status:"HEALTHY",load:68,color:"#10B981"},
-                  {name:"Intent Router",status:"HEALTHY",load:43,color:"#10B981"},
-                  {name:"Workday Connector",status:"WARN",load:91,color:"#F59E0B"},
-                  {name:"SN ITSM Agent",status:"HEALTHY",load:37,color:"#10B981"},
-                  {name:"Azure IAM Broker",status:"HEALTHY",load:22,color:"#10B981"},
-                ].map(a=>(
-                  <div key={a.name} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                    <span className={`pulse-dot ${a.status==="HEALTHY"?"pulse-green":"pulse-amber"}`}/>
-                    <span style={{flex:1,fontSize:11,color:"#8A9EB4"}}>{a.name}</span>
-                    <div style={{width:60,height:3,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}>
-                      <div style={{width:`${a.load}%`,height:"100%",background:a.color,transition:"width 0.8s ease"}}/>
-                    </div>
-                    <span className="mono" style={{fontSize:10,color:"#3A4A5A",width:28,textAlign:"right"}}>{a.load}%</span>
-                  </div>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                {["Provider", "System", "API Calls", "30-day trend", "Status"].map(h => (
+                  <th key={h} style={{ padding: "8px 16px", textAlign: "left", color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace", borderBottom: `1px solid ${T.border}`, fontWeight: 500 }}>{h}</th>
                 ))}
-              </div>
-            </div>
-
-            {/* Recent log preview */}
-            <div className="panel" style={{padding:"14px 16px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <p className="mono" style={{fontSize:11,color:"#5A6A7A",letterSpacing:"0.08em",textTransform:"uppercase"}}>
-                  Recent Events
-                </p>
-                <button className="tab-btn" style={{padding:"3px 10px"}} onClick={()=>setTab("audit")}>
-                  View all →
-                </button>
-              </div>
-              {AUDIT_LOGS.slice(0,5).map((log,i)=>(
-                <div key={log.id} className="row-hover" style={{display:"flex",alignItems:"center",gap:10,padding:"6px 4px",
-                  borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-                  <span className="mono" style={{fontSize:10,color:"#3A4A5A",width:60}}>{log.ts}</span>
-                  <span className={`badge badge-${log.policy==="BLOCK"?"red":log.policy==="WARN"?"amber":log.policy==="REVIEW"?"teal":"gray"}`}>
-                    {log.policy}
-                  </span>
-                  <span className="mono" style={{fontSize:10,color:"#4A5A6A",width:70}}>{log.sys}</span>
-                  <span style={{flex:1,fontSize:11,color:"#8A9EB4"}}>{log.action}</span>
-                  <span style={{fontSize:11,color:"#4A5A6A"}}>{log.user}</span>
-                </div>
+              </tr>
+            </thead>
+            <tbody>
+              {ALL_SYSTEMS.map((s, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${T.borderMid}` }}>
+                  <td style={{ padding: "10px 16px", color: T.bright, fontSize: 12 }}>{s.provider}</td>
+                  <td style={{ padding: "10px 16px", color: T.muted, fontSize: 11 }}>{s.system}</td>
+                  <td style={{ padding: "10px 16px", color: T.text, fontFamily: "'DM Mono', monospace", fontSize: 12 }}>{s.calls}</td>
+                  <td style={{ padding: "10px 16px", color: T.emerald, fontSize: 12 }}>{s.trend}</td>
+                  <td style={{ padding: "10px 16px" }}>
+                    <span style={{
+                      background: s.status === "healthy" ? T.emeraldDim : T.amberDim,
+                      color: s.status === "healthy" ? T.emerald : T.amber,
+                      border: `1px solid ${s.status === "healthy" ? T.emerald : T.amber}30`,
+                      borderRadius: 4, padding: "2px 8px", fontSize: 10,
+                      fontFamily: "'DM Mono', monospace",
+                    }}>{s.status}</span>
+                  </td>
+                </tr>
               ))}
-            </div>
+            </tbody>
+          </table>
+        </div>
+
+        {/* My Tasks */}
+        <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+            <span style={{ color: T.bright, fontSize: 13, fontWeight: 600 }}>My Tasks</span>
           </div>
-        )}
-
-        {/* ══ AUDIT LOG TAB ══ */}
-        {tab==="audit"&&(
-          <div className="fade-in">
-            <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
-              <span style={{fontSize:11,color:"#4A5A6A"}}>Filter:</span>
-              {["ALL","HIGH","MED","LOW","BLOCK","PASS","WARN"].map(f=>(
-                <button key={f} className={`tab-btn${logFilter===f?" active":""}`}
-                  style={{padding:"3px 10px"}} onClick={()=>setLogFilter(f)}>{f}</button>
-              ))}
-              <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
-                <span className="blink mono" style={{fontSize:10,color:"#F59E0B"}}>●</span>
-                <span className="mono" style={{fontSize:10,color:"#3A4A5A"}}>LIVE STREAM</span>
+          <div style={{ overflowY: "auto", maxHeight: 420 }}>
+            {MY_TASKS.map((task, i) => (
+              <div key={i} style={{ padding: "14px 16px", borderBottom: `1px solid ${T.borderMid}` }}>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                  <span style={{
+                    fontSize: 9, fontFamily: "'DM Mono', monospace", padding: "1px 6px", borderRadius: 3,
+                    background: task.type === "alert" ? T.roseDim : task.type === "recommendation" ? T.violetDim : T.goldDim,
+                    color: task.type === "alert" ? T.rose : task.type === "recommendation" ? T.violet : T.gold,
+                    border: `1px solid ${task.type === "alert" ? T.rose : task.type === "recommendation" ? T.violet : T.gold}25`,
+                    textTransform: "uppercase", letterSpacing: "0.05em",
+                  }}>{task.type}</span>
+                  <PriorityBadge level={task.priority} />
+                </div>
+                <div style={{ color: T.bright, fontSize: 13, fontWeight: 500, marginBottom: 5, lineHeight: 1.4 }}>{task.title}</div>
+                <div style={{ color: T.muted, fontSize: 11, lineHeight: 1.5, marginBottom: 8 }}>{task.detail}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.muted, fontFamily: "'DM Mono', monospace" }}>
+                  <span>Raised by: {task.by}</span>
+                  <span>{task.created}</span>
+                </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            <div className="panel" style={{overflow:"auto",maxHeight:420}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead>
-                  <tr style={{borderBottom:"1px solid rgba(245,158,11,0.15)"}}>
-                    {["EVENT ID","TIME","USER","SYSTEM","ACTION","RISK","MODEL","POLICY","DETAIL"].map(h=>(
-                      <th key={h} style={{padding:"8px 12px",textAlign:"left",fontSize:10,color:"#3A4A5A",
-                        fontFamily:"IBM Plex Mono",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredLogs.map((log,i)=>(
-                    <tr key={log.id} className="row-hover" style={{borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
-                      <td className="mono" style={{padding:"7px 12px",fontSize:10,color:"#F59E0B"}}>{log.id}</td>
-                      <td className="mono" style={{padding:"7px 12px",fontSize:10,color:"#3A4A5A"}}>{log.ts}</td>
-                      <td style={{padding:"7px 12px",fontSize:11,color:"#8A9EB4"}}>{log.user}</td>
-                      <td style={{padding:"7px 12px"}}>
-                        <span className={`badge badge-${log.sys.includes("Azure")?"teal":log.sys.includes("Service")?"green":log.sys.includes("Workday")?"amber":"gray"}`}>
-                          {log.sys}
-                        </span>
-                      </td>
-                      <td style={{padding:"7px 12px",fontSize:11,color:"#C8D4E8",maxWidth:180}}>{log.action}</td>
-                      <td style={{padding:"7px 12px"}}>
-                        <span className={`mono risk-${log.risk==="HIGH"?"high":log.risk==="MED"?"med":"low"}`} style={{fontSize:10}}>
-                          {log.risk}
-                        </span>
-                      </td>
-                      <td className="mono" style={{padding:"7px 12px",fontSize:9,color:"#4A5A6A",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                        {log.model}
-                      </td>
-                      <td style={{padding:"7px 12px"}}>
-                        <span className={`badge badge-${log.policy==="PASS"?"green":log.policy==="BLOCK"?"red":log.policy==="WARN"?"amber":"teal"}`}>
-                          {log.policy}
-                        </span>
-                      </td>
-                      <td style={{padding:"7px 12px",fontSize:10,color:"#4A5A6A",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                        {log.detail}
-                      </td>
-                    </tr>
+function AIInventoryTab() {
+  const categories = [
+    { label: "AI Agents", color: T.teal, items: [
+      { name: "EmployeeWorks (HR)",     model: "claude-sonnet-4-6", status: "active",   calls: "2,841", accuracy: "97.2%" },
+      { name: "ITStream (IT)",          model: "claude-haiku-4-5",  status: "active",   calls: "4,103", accuracy: "94.8%" },
+      { name: "FinFlow (Finance)",      model: "claude-sonnet-4-6", status: "active",   calls: "891",   accuracy: "96.1%" },
+      { name: "LegalAssist (Legal)",    model: "claude-haiku-4-5",  status: "inactive", calls: "0",     accuracy: "—" },
+      { name: "IntentRouter",           model: "gemini-2.0-flash",  status: "active",   calls: "6,101", accuracy: "91.3%" },
+    ]},
+    { label: "Models", color: T.violet, items: [
+      { name: "claude-sonnet-4-6",  model: "Anthropic", status: "active",   calls: "3,732",  accuracy: "97.2%" },
+      { name: "claude-haiku-4-5",   model: "Anthropic", status: "active",   calls: "4,203",  accuracy: "94.8%" },
+      { name: "gemini-2.0-flash",   model: "Google",    status: "warning",  calls: "6,101",  accuracy: "91.3%" },
+    ]},
+  ];
+  return (
+    <div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>AI Inventory</div>
+      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>All AI agents, models, and data sources registered on this tenant.</div>
+      {categories.map(cat => (
+        <div key={cat.label} style={{ marginBottom: 20 }}>
+          <div style={{ color: cat.color, fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 10 }}>{cat.label.toUpperCase()}</div>
+          <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {["Name", "Model / Provider", "API Calls", "Accuracy", "Status"].map(h => (
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace", borderBottom: `1px solid ${T.border}`, fontWeight: 500 }}>{h}</th>
                   ))}
-                </tbody>
-              </table>
+                </tr>
+              </thead>
+              <tbody>
+                {cat.items.map((item, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${T.borderMid}` }}>
+                    <td style={{ padding: "12px 16px", color: T.bright, fontWeight: 500 }}>{item.name}</td>
+                    <td style={{ padding: "12px 16px", color: T.muted, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{item.model}</td>
+                    <td style={{ padding: "12px 16px", color: T.text, fontFamily: "'DM Mono', monospace" }}>{item.calls}</td>
+                    <td style={{ padding: "12px 16px", color: item.accuracy === "—" ? T.muted : T.teal, fontFamily: "'DM Mono', monospace" }}>{item.accuracy}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{
+                        background: item.status === "active" ? T.emeraldDim : item.status === "warning" ? T.amberDim : "rgba(255,255,255,0.04)",
+                        color: item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted,
+                        border: `1px solid ${item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted}30`,
+                        borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono', monospace",
+                      }}>{item.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ValueTab() {
+  return (
+    <div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>Value</div>
+      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Measurable business impact delivered by iOPEX AI FrontDoor.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+        {VALUE_METRICS.map(m => (
+          <div key={m.label} style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, padding: "20px 22px" }}>
+            <div style={{ color: T.muted, fontSize: 12, marginBottom: 8 }}>{m.label}</div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 26, fontWeight: 700, color: m.color, marginBottom: 4 }}>{m.value}</div>
+            <div style={{ color: T.emerald, fontSize: 12 }}>↑ {m.delta}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, padding: "20px 22px" }}>
+        <div style={{ color: T.muted, fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 16 }}>PRODUCTIVITY — LAST 30 DAYS</div>
+        <ResponsiveContainer width="100%" height={160}>
+          <AreaChart data={VALUE_DATA}>
+            <defs>
+              <linearGradient id="vg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={T.emerald} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={T.emerald} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="i" hide />
+            <YAxis hide />
+            <Tooltip contentStyle={{ background: T.navyMid, border: `1px solid ${T.border}`, borderRadius: 6, fontSize: 11 }} />
+            <Area type="monotone" dataKey="v" stroke={T.emerald} strokeWidth={2} fill="url(#vg)" dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function AdoptionTab() {
+  const depts = [
+    { name: "IT & Tech",    pct: 94, users: 124, color: T.teal },
+    { name: "HR & People",  pct: 88, users: 98,  color: T.violet },
+    { name: "Finance",      pct: 72, users: 61,  color: T.emerald },
+    { name: "Operations",   pct: 65, users: 54,  color: T.amber },
+    { name: "Legal",        pct: 31, users: 18,  color: T.gold },
+    { name: "Facilities",   pct: 58, users: 44,  color: T.sky },
+    { name: "Security",     pct: 81, users: 72,  color: T.rose },
+    { name: "Marketing",    pct: 47, users: 31,  color: T.pink },
+  ];
+  return (
+    <div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>Adoption</div>
+      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>AI FrontDoor adoption rate by department across Acme Corp.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 20 }}>
+        {depts.map(d => (
+          <div key={d.name} style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ color: d.color, fontWeight: 600, fontSize: 13 }}>{d.name}</span>
+              <span style={{ color: T.muted, fontSize: 12 }}>{d.users} active users</span>
             </div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,padding:"0 4px"}}>
-              <span className="mono" style={{fontSize:10,color:"#3A4A5A"}}>
-                Showing {filteredLogs.length} of {AUDIT_LOGS.length} events · Retention: 90 days
-              </span>
-              <span className="mono" style={{fontSize:10,color:"#3A4A5A"}}>
-                Export: CSV · JSON · SIEM
-              </span>
+            <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 3, overflow: "hidden", marginBottom: 6 }}>
+              <div style={{ height: "100%", width: `${d.pct}%`, background: d.color, borderRadius: 3, transition: "width 1s" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: T.muted, fontSize: 11 }}>Adoption rate</span>
+              <span style={{ color: d.color, fontSize: 13, fontWeight: 700, fontFamily: "'DM Mono', monospace" }}>{d.pct}%</span>
             </div>
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        {/* ══ POLICY TAB ══ */}
-        {tab==="policy"&&(
-          <div className="fade-in">
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-              {[
-                {label:"ALLOW",val:"1,181",color:"#10B981",pct:98.1},
-                {label:"REDACT/MASK",val:"14",color:"#06B6D4",pct:1.2},
-                {label:"ESCALATE",val:"6",color:"#F59E0B",pct:0.5},
-                {label:"BLOCK",val:"3",color:"#EF4444",pct:0.2},
-              ].map(p=>(
-                <div key={p.label} className="panel" style={{padding:"12px 14px"}}>
-                  <p className="mono" style={{fontSize:9,color:"#3A4A5A",letterSpacing:"0.1em",marginBottom:8}}>{p.label}</p>
-                  <p className="mono" style={{fontSize:20,fontWeight:600,color:p.color}}>{p.val}</p>
-                  <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:1,marginTop:8,overflow:"hidden"}}>
-                    <div style={{width:`${p.pct}%`,height:"100%",background:p.color}}/>
-                  </div>
-                  <p style={{fontSize:10,color:"#3A4A5A",marginTop:4}}>{p.pct}% of decisions</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="panel" style={{overflow:"auto"}}>
-              <div style={{padding:"12px 16px",borderBottom:"1px solid rgba(245,158,11,0.1)"}}>
-                <p className="mono" style={{fontSize:11,color:"#5A6A7A",letterSpacing:"0.08em",textTransform:"uppercase"}}>
-                  Policy Decision Log — Most Recent
-                </p>
-              </div>
-              {POLICY_DECISIONS.map(p=>(
-                <div key={p.id} className="row-hover" style={{padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:5}}>
-                    <span className="mono" style={{fontSize:10,color:"#F59E0B"}}>{p.id}</span>
-                    <span className="mono" style={{fontSize:10,color:"#3A4A5A"}}>{p.ts}</span>
-                    <span className={`badge badge-${p.action==="ALLOW"?"green":p.action==="BLOCK"?"red":p.action==="ESCALATE"?"amber":"teal"}`}>
-                      {p.action}
-                    </span>
-                    <span className="mono" style={{fontSize:10,color:"#4A5A6A"}}>{p.rule}</span>
-                    <span style={{marginLeft:"auto",fontSize:10,color:"#3A4A5A",fontFamily:"IBM Plex Mono"}}>
-                      {p.latency}
-                    </span>
-                  </div>
-                  <div style={{display:"flex",gap:16}}>
-                    <span style={{fontSize:11,color:"#8A9EB4"}}>User: <span style={{color:"#C8D4E8"}}>{p.user}</span></span>
-                    <span style={{fontSize:11,color:"#8A9EB4"}}>Resource: <span style={{color:"#C8D4E8"}}>{p.resource}</span></span>
-                    <span style={{fontSize:11,color:"#6A7A8A"}}>{p.reason}</span>
-                  </div>
-                </div>
-              ))}
+function RiskTab() {
+  const openIssues = [
+    { id: "AI-014", framework: "EU AI Act",    severity: "CRITICAL", title: "High-risk AI system classification review overdue",          owner: "AI Governance",  due: "Mar 25" },
+    { id: "AI-013", framework: "NIST AI RMF",  severity: "HIGH",     title: "Model drift threshold exceeded — Gemini 2.0 Flash (4.2%)",  owner: "ML Ops",         due: "Mar 22" },
+    { id: "AI-012", framework: "NIST AI RMF",  severity: "MED",      title: "Audit log retention gap — 90 days between quarters",        owner: "Security",       due: "Mar 28" },
+    { id: "AI-011", framework: "EU AI Act",     severity: "MED",      title: "Human oversight docs not current for 3 agent types",        owner: "AI Governance",  due: "Mar 30" },
+  ];
+  const sev = { CRITICAL:"#ff4d6d", HIGH:T.rose, MED:T.amber, LOW:T.teal };
+  return (
+    <div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>Risk & Compliance</div>
+      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>AI governance posture across active compliance frameworks.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
+        {RISKS.map(r => (
+          <div key={r.framework} style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14, alignItems: "center" }}>
+            <RingSmall score={r.score} color={r.color} />
+            <div>
+              <div style={{ color: T.text, fontWeight: 600, fontSize: 12, marginBottom: 3 }}>{r.framework}</div>
+              <div style={{ color: T.muted, fontSize: 11 }}>{r.issues} issues</div>
+              {r.critical > 0 && <div style={{ color: T.rose, fontSize: 11 }}>{r.critical} critical</div>}
             </div>
           </div>
-        )}
-
-        {/* ══ MODELS TAB ══ */}
-        {tab==="models"&&(
-          <div className="fade-in">
-            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-              {MODELS.map(m=>(
-                <div key={m.name} className={`panel panel-${m.status==="WARN"?"amber":m.status==="HEALTHY"?"green":"red"}`}
-                  style={{padding:"16px 18px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                    <div>
-                      <p className="mono" style={{fontSize:12,fontWeight:600,color:"#C8D4E8"}}>{m.name}</p>
-                      <p style={{fontSize:11,color:"#4A5A6A",marginTop:2}}>{m.provider} · {m.role}</p>
-                    </div>
-                    <span className={`badge badge-${m.status==="HEALTHY"?"green":"amber"}`}>{m.status}</span>
-                  </div>
-                  <hr className="divline"/>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-                    {[
-                      {label:"REQUESTS",val:m.requests.toLocaleString(),color:"#06B6D4"},
-                      {label:"ACCURACY",val:m.accuracy+"%",color:m.accuracy>95?"#10B981":"#F59E0B"},
-                      {label:"AVG LATENCY",val:m.latency,color:"#8A9EB4"},
-                      {label:"COST/REQ",val:m.cost,color:"#A78BFA"},
-                      {label:"MODEL DRIFT",val:m.drift+"%",color:m.drift>3?"#EF4444":"#10B981"},
-                      {label:"24H COST",val:"$"+(m.requests*parseFloat(m.cost.slice(1))).toFixed(2),color:"#8A9EB4"},
-                    ].map(s=>(
-                      <div key={s.label}>
-                        <p className="mono" style={{fontSize:9,color:"#3A4A5A",letterSpacing:"0.08em",marginBottom:3}}>{s.label}</p>
-                        <p className="mono" style={{fontSize:14,fontWeight:600,color:s.color}}>{s.val}</p>
-                      </div>
-                    ))}
-                  </div>
-                  {m.status==="WARN"&&(
-                    <div style={{marginTop:10,padding:"7px 10px",background:"rgba(245,158,11,0.06)",
-                      border:"1px solid rgba(245,158,11,0.2)",borderRadius:3}}>
-                      <p className="mono" style={{fontSize:10,color:"#F59E0B"}}>
-                        ⚠ Model drift {m.drift}% exceeds threshold 3.0% · Review scheduled
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
+        ))}
+      </div>
+      <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, color: T.bright, fontSize: 13, fontWeight: 600 }}>Open Issues</div>
+        {openIssues.map(issue => (
+          <div key={issue.id} style={{ display: "flex", gap: 14, padding: "13px 18px", borderBottom: `1px solid ${T.borderMid}`, alignItems: "flex-start" }}>
+            <span style={{ background: sev[issue.severity] + "18", color: sev[issue.severity], border: `1px solid ${sev[issue.severity]}30`, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono', monospace", fontWeight: 700, flexShrink: 0 }}>{issue.severity}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: T.bright, fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{issue.title}</div>
+              <div style={{ color: T.muted, fontSize: 11 }}>{issue.framework} · {issue.owner} · Due {issue.due}</div>
             </div>
+            <span style={{ color: T.muted, fontFamily: "'DM Mono', monospace", fontSize: 10, flexShrink: 0 }}>{issue.id}</span>
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        {/* ══ COMPLIANCE TAB ══ */}
-        {tab==="compliance"&&(
-          <div className="fade-in">
-            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:14}}>
-              {COMPLIANCE.map(c=>(
-                <div key={c.framework} className="panel" style={{padding:"18px 20px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
-                    <Ring score={c.score} color={c.color}/>
-                    <div>
-                      <p style={{fontSize:13,fontWeight:600,color:"#C8D4E8",marginBottom:3}}>{c.framework}</p>
-                      <div style={{display:"flex",gap:8}}>
-                        <span style={{fontSize:11,color:"#4A5A6A"}}>{c.controls} controls</span>
-                        {c.critical>0&&<span className="badge badge-red">{c.critical} critical</span>}
-                        {c.open>0&&<span className="badge badge-amber">{c.open} open</span>}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:1,overflow:"hidden"}}>
-                    <div style={{width:`${c.score}%`,height:"100%",background:c.color,transition:"width 1s ease"}}/>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
-                    <span style={{fontSize:10,color:"#3A4A5A"}}>{c.controls-c.open} passing</span>
-                    <span className="mono" style={{fontSize:10,color:c.color}}>{c.score}% compliant</span>
-                  </div>
-                </div>
-              ))}
+function SecurityTab() {
+  const events = [
+    { time: "09:14:03", type: "POLICY BLOCK",   user: "frank.lee@acmecorp.com",   action: "DELETE /change-requests/CHG0012 — immutable record",   risk: "HIGH" },
+    { time: "09:12:22", type: "DATA REDACT",     user: "carol.wu@acmecorp.com",    action: "GET /payroll/salary — salary fields redacted, role insufficient", risk: "HIGH" },
+    { time: "09:10:33", type: "ESCALATE",        user: "eve.torres@acmecorp.com",  action: "PUT /employees/salary-adj — dual approval required",   risk: "HIGH" },
+    { time: "09:08:44", type: "PASS",            user: "grace.patel@acmecorp.com", action: "GET /teams/channels — read within tenant boundary",    risk: "LOW" },
+    { time: "09:07:19", type: "PASS",            user: "henry.zhao@acmecorp.com",  action: "POST /leave-requests — automated approval <5 days",    risk: "LOW" },
+  ];
+  const tc = { "POLICY BLOCK": T.rose, "DATA REDACT": T.amber, ESCALATE: T.violet, PASS: T.emerald };
+  return (
+    <div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>Security & Privacy</div>
+      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Real-time policy enforcement log. Every AI decision audited by TrustCore.</div>
+      <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr>{["Time", "Decision", "User", "Action", "Risk"].map(h => (
+              <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace", borderBottom: `1px solid ${T.border}`, fontWeight: 500 }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {events.map((e, i) => (
+              <tr key={i} style={{ borderBottom: `1px solid ${T.borderMid}` }}>
+                <td style={{ padding: "11px 14px", color: T.muted, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{e.time}</td>
+                <td style={{ padding: "11px 14px" }}>
+                  <span style={{ background: tc[e.type] + "18", color: tc[e.type], border: `1px solid ${tc[e.type]}25`, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono', monospace", fontWeight: 700 }}>{e.type}</span>
+                </td>
+                <td style={{ padding: "11px 14px", color: T.text, fontSize: 11 }}>{e.user}</td>
+                <td style={{ padding: "11px 14px", color: T.muted, fontSize: 11, maxWidth: 320 }}>{e.action}</td>
+                <td style={{ padding: "11px 14px" }}>
+                  <span style={{ color: e.risk === "HIGH" ? T.rose : T.teal, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{e.risk}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function StrategyTab() {
+  const initiatives = [
+    { title: "Expand Legal domain coverage", status: "planned",     impact: "HIGH",   owner: "AI Strategy", due: "Q2 2026" },
+    { title: "Enable Voice Agent (AIx)",     status: "in-progress", impact: "HIGH",   owner: "Product",     due: "Q2 2026" },
+    { title: "Workday deep integration",     status: "in-progress", impact: "MED",    owner: "Integrations",due: "Q2 2026" },
+    { title: "SAP SuccessFactors repair",    status: "urgent",      impact: "MED",    owner: "Nexus Team",  due: "Mar 22" },
+    { title: "AI Lens (screenshot input)",   status: "planned",     impact: "MED",    owner: "Product",     due: "Q3 2026" },
+    { title: "Multi-tenant isolation audit", status: "planned",     impact: "HIGH",   owner: "Security",    due: "Q2 2026" },
+  ];
+  const sc = { planned:"rgba(255,255,255,0.08)", "in-progress":T.tealDim, urgent:T.roseDim };
+  const sl = { planned:T.muted, "in-progress":T.teal, urgent:T.rose };
+  return (
+    <div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>AI Strategy</div>
+      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Roadmap and strategic initiatives for expanding AI FrontDoor coverage.</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {initiatives.map((item, i) => (
+          <div key={i} style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }}>
+            <span style={{ background: sc[item.status], color: sl[item.status], border: `1px solid ${sl[item.status]}30`, borderRadius: 4, padding: "2px 10px", fontSize: 10, fontFamily: "'DM Mono', monospace", fontWeight: 700, flexShrink: 0, minWidth: 90, textAlign: "center" }}>{item.status}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: T.bright, fontSize: 13, fontWeight: 500 }}>{item.title}</div>
+              <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>Owner: {item.owner} · Due: {item.due}</div>
             </div>
-            <div className="panel" style={{padding:"14px 16px"}}>
-              <p className="mono" style={{fontSize:11,color:"#5A6A7A",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
-                Open Risk Issues
-              </p>
-              {[
-                {id:"RISK-041",fw:"EU AI Act",severity:"CRITICAL",issue:"Art.13 transparency requirement: AI decision explanations not surfaced to end users",owner:"AI Governance Team",due:"Mar 28"},
-                {id:"RISK-040",fw:"EU AI Act",severity:"CRITICAL",issue:"Art.9 risk mgmt: Workday connector bias assessment incomplete",owner:"Data Science",due:"Apr 05"},
-                {id:"RISK-039",fw:"NIST AI RMF",severity:"HIGH",issue:"GOVERN 1.1: AI inventory missing 3 shadow AI deployments in Finance",owner:"CISO Office",due:"Mar 25"},
-                {id:"RISK-038",fw:"NIST AI RMF",severity:"HIGH",issue:"MEASURE 2.5: Model performance reports not generated for 2 models",owner:"MLOps",due:"Apr 01"},
-                {id:"RISK-037",fw:"ISO/IEC 42001",severity:"MED",issue:"A.6.2: Human oversight controls for high-stakes HR decisions need review",owner:"HR Legal",due:"Apr 15"},
-              ].map(r=>(
-                <div key={r.id} className="row-hover" style={{display:"flex",alignItems:"flex-start",gap:10,
-                  padding:"9px 4px",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-                  <span className="mono" style={{fontSize:10,color:"#F59E0B",width:70,flexShrink:0}}>{r.id}</span>
-                  <span className={`badge badge-${r.severity==="CRITICAL"?"red":r.severity==="HIGH"?"amber":"gray"}`} style={{flexShrink:0}}>
-                    {r.severity}
-                  </span>
-                  <span className="badge badge-teal" style={{flexShrink:0}}>{r.fw}</span>
-                  <span style={{flex:1,fontSize:11,color:"#8A9EB4",lineHeight:1.4}}>{r.issue}</span>
-                  <span style={{fontSize:10,color:"#3A4A5A",whiteSpace:"nowrap"}}>{r.owner}</span>
-                  <span className="mono" style={{fontSize:10,color:"#4A5A6A",whiteSpace:"nowrap"}}>Due {r.due}</span>
-                </div>
-              ))}
-            </div>
+            <span style={{ background: item.impact === "HIGH" ? T.roseDim : T.goldDim, color: item.impact === "HIGH" ? T.rose : T.gold, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono', monospace" }}>{item.impact}</span>
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+  );
+}
 
+/* ════════════════════════════════════════════════════════════════
+   MAIN
+════════════════════════════════════════════════════════════════ */
+const TABS = ["Overview", "AI Inventory", "Value", "Adoption", "Risk & Compliance", "Security & Privacy", "AI Strategy"];
+
+export default function AIControlTower() {
+  const [tab, setTab] = useState("Overview");
+  return (
+    <div style={{ background: T.navy, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", color: T.text }}>
+      {/* Header */}
+      <div style={{ background: T.navyDeep, borderBottom: `1px solid ${T.border}`, padding: "0 32px", height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+            <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={T.gold} strokeWidth="1.5" />
+            <polygon points="16,8 24,12.5 24,21.5 16,26 8,21.5 8,12.5" fill={T.goldDim} stroke={T.gold} strokeWidth="0.7" />
+          </svg>
+          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, color: T.gold }}>AI Control Tower</span>
+          <span style={{ color: T.muted, fontSize: 11 }}>· iOPEX TrustCore · Acme Corp</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: T.emerald, boxShadow: `0 0 8px ${T.emerald}` }} />
+          <span style={{ color: T.emerald, fontSize: 11, fontFamily: "'DM Mono', monospace" }}>LIVE</span>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 28px" }}>
+        {/* Welcome */}
+        <div style={{ marginBottom: 8 }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: T.bright }}>
+            Welcome to AI Control Tower
+          </h1>
+        </div>
+
+        {/* Tab navigation */}
+        <TabBar tabs={TABS} active={tab} onChange={setTab} />
+
+        {/* Tab content */}
+        {tab === "Overview"            && <OverviewTab />}
+        {tab === "AI Inventory"        && <AIInventoryTab />}
+        {tab === "Value"               && <ValueTab />}
+        {tab === "Adoption"            && <AdoptionTab />}
+        {tab === "Risk & Compliance"   && <RiskTab />}
+        {tab === "Security & Privacy"  && <SecurityTab />}
+        {tab === "AI Strategy"         && <StrategyTab />}
       </div>
     </div>
   );
