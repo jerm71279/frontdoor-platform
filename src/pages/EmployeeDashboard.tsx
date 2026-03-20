@@ -1,276 +1,256 @@
 /**
- * iOPEX AI FrontDoor — Employee Daily Portal
- * Hybrid: greeting + chat bar + dept quick actions + request feed
- * Full flow: submit → AI routes → in progress → approval → complete
+ * iOPEX AI FrontDoor — One Platform · One Data Model · Every Corner of Your Business
+ * Employee daily portal: unified AI surface across IT, HR, Finance, Legal, Facilities, Security, Ops
  */
 import { useState, useEffect, useRef } from "react";
 
-/* ── Fonts ───────────────────────────────────────────────────────── */
 const _link = document.createElement("link");
 _link.rel = "stylesheet";
 _link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap";
 document.head.appendChild(_link);
 
-/* ── Tokens ──────────────────────────────────────────────────────── */
+/* ── Tokens ── */
 const T = {
-  navy:      "#0B1120",
-  navyMid:   "#0F1829",
-  navyCard:  "#131E2F",
-  navyHover: "#1a2640",
-  gold:      "#E8A020",
-  goldDim:   "rgba(232,160,32,0.10)",
-  goldBorder:"rgba(232,160,32,0.25)",
-  teal:      "#06B6D4",
-  tealDim:   "rgba(6,182,212,0.10)",
-  violet:    "#8B5CF6",
-  violetDim: "rgba(139,92,246,0.10)",
-  emerald:   "#10B981",
-  emeraldDim:"rgba(16,185,129,0.10)",
-  rose:      "#F43F5E",
-  roseDim:   "rgba(244,63,94,0.10)",
-  amber:     "#F59E0B",
-  amberDim:  "rgba(245,158,11,0.10)",
-  text:      "#D4DCE8",
-  muted:     "#4A5A72",
-  bright:    "#EEF2F8",
-  border:    "rgba(255,255,255,0.07)",
-  borderMid: "rgba(255,255,255,0.04)",
+  navy:       "#0B1120",
+  navyMid:    "#0F1829",
+  navyCard:   "#111927",
+  navyHover:  "#18253A",
+  navyDeep:   "#080E1A",
+  gold:       "#E8A020",
+  goldDim:    "rgba(232,160,32,0.10)",
+  goldBorder: "rgba(232,160,32,0.22)",
+  goldGlow:   "rgba(232,160,32,0.06)",
+  teal:       "#06B6D4",   tealDim:    "rgba(6,182,212,0.10)",
+  violet:     "#8B5CF6",   violetDim:  "rgba(139,92,246,0.10)",
+  emerald:    "#10B981",   emeraldDim: "rgba(16,185,129,0.10)",
+  rose:       "#F43F5E",   roseDim:    "rgba(244,63,94,0.10)",
+  amber:      "#F59E0B",   amberDim:   "rgba(245,158,11,0.10)",
+  sky:        "#38BDF8",   skyDim:     "rgba(56,189,248,0.10)",
+  pink:       "#EC4899",   pinkDim:    "rgba(236,72,153,0.10)",
+  lime:       "#84CC16",   limeDim:    "rgba(132,204,22,0.10)",
+  text:       "#C8D4E4",
+  muted:      "#3D5068",
+  bright:     "#ECF1FA",
+  border:     "rgba(255,255,255,0.06)",
+  borderMid:  "rgba(255,255,255,0.03)",
 };
 
-/* ── Demo Employee ───────────────────────────────────────────────── */
-const EMPLOYEE = {
-  id:         "EMP-8841",
-  name:       "Alex Chen",
-  first:      "Alex",
-  dept:       "Engineering",
-  role:       "Senior Software Engineer",
-  manager:    "Sarah Park",
-  avatar:     "AC",
-  location:   "Austin, TX",
-  tenure:     "3 yrs 4 mo",
+/* ── Employee ── */
+const EMP = {
+  id: "EMP-8841", name: "Alex Chen", first: "Alex",
+  dept: "Engineering", role: "Sr. Software Engineer",
+  manager: "Sarah Park", avatar: "AC", location: "Austin, TX",
+  tenure: "3 yrs 4 mo", pto: 14, costCenter: "ENG-204",
 };
 
-/* ── Request Status Config ───────────────────────────────────────── */
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  submitted:   { label: "Submitted",       color: T.teal,    bg: T.tealDim },
-  routing:     { label: "AI Routing…",     color: T.violet,  bg: T.violetDim },
-  in_progress: { label: "In Progress",     color: T.teal,    bg: T.tealDim },
-  pending:     { label: "Pending Approval",color: T.amber,   bg: T.amberDim },
-  approved:    { label: "Approved",        color: T.emerald, bg: T.emeraldDim },
-  completed:   { label: "Completed",       color: T.emerald, bg: T.emeraldDim },
-  cancelled:   { label: "Cancelled",       color: T.muted,   bg: "rgba(255,255,255,0.04)" },
+/* ── Every Corner of the Business ── */
+const DOMAINS = [
+  { id: "IT",          label: "IT & Tech",      icon: "⚙",  color: T.teal,    dim: T.tealDim,
+    desc: "Devices, access, software, VPN, helpdesk",
+    scenarios: ["New laptop request","Software access","VPN setup","Password reset","Hardware repair","Security key","Monitor/peripherals","Developer tools"] },
+  { id: "HR",          label: "HR & People",    icon: "◎",  color: T.violet,  dim: T.violetDim,
+    desc: "Leave, benefits, payroll, onboarding, policy",
+    scenarios: ["Request PTO","Benefits enrollment","Address change","Pay stub","Onboarding checklist","Policy question","Manager change","Direct deposit"] },
+  { id: "Finance",     label: "Finance",        icon: "◈",  color: T.emerald, dim: T.emeraldDim,
+    desc: "Expenses, POs, reimbursements, invoices",
+    scenarios: ["Expense report","Purchase order","Reimbursement","Budget query","Vendor invoice","Credit card limit","Travel advance","Finance approval"] },
+  { id: "Legal",       label: "Legal",          icon: "⊡",  color: T.amber,   dim: T.amberDim,
+    desc: "Contracts, NDAs, compliance, IP",
+    scenarios: ["NDA request","Contract review","IP disclosure","Compliance question","Policy exception","Legal hold","Data privacy request","Trademark filing"] },
+  { id: "Facilities",  label: "Facilities",     icon: "⬡",  color: T.sky,     dim: T.skyDim,
+    desc: "Office, badges, parking, room booking",
+    scenarios: ["Badge access","Room booking","Parking permit","Office supplies","Move request","Standing desk","Building issue","Visitor pass"] },
+  { id: "Security",    label: "Security",       icon: "◬",  color: T.rose,    dim: T.roseDim,
+    desc: "Access review, incidents, MFA, audits",
+    scenarios: ["MFA reset","Access review","Security incident","Phishing report","Privileged access","Audit request","DLP exception","Security training"] },
+  { id: "Operations",  label: "Operations",     icon: "◉",  color: T.lime,    dim: T.limeDim,
+    desc: "Procurement, vendors, policies, logistics",
+    scenarios: ["Vendor onboarding","Procurement request","Policy update","Process improvement","Logistics query","Supply chain","Ops approval","SOP access"] },
+  { id: "Marketing",   label: "Marketing",      icon: "◌",  color: T.pink,    dim: T.pinkDim,
+    desc: "Brand, creative, campaigns, assets",
+    scenarios: ["Brand asset","Creative brief","Campaign approval","Social post","Swag order","Event request","Press inquiry","Media kit"] },
+];
+
+/* ── Status ── */
+const S: Record<string, { label: string; color: string; bg: string }> = {
+  submitted:   { label: "Submitted",        color: T.teal,    bg: T.tealDim },
+  routing:     { label: "AI Routing…",      color: T.violet,  bg: T.violetDim },
+  in_progress: { label: "In Progress",      color: T.sky,     bg: T.skyDim },
+  pending:     { label: "Pending Approval", color: T.amber,   bg: T.amberDim },
+  approved:    { label: "Approved",         color: T.emerald, bg: T.emeraldDim },
+  completed:   { label: "Completed",        color: T.emerald, bg: T.emeraldDim },
+  cancelled:   { label: "Cancelled",        color: T.muted,   bg: T.borderMid },
 };
 
-/* ── Domain Config ───────────────────────────────────────────────── */
-const DOMAIN_CFG: Record<string, { color: string; icon: string; label: string }> = {
-  IT:          { color: T.teal,    icon: "⚙",  label: "IT" },
-  HR:          { color: T.violet,  icon: "👤", label: "HR" },
-  Finance:     { color: T.emerald, icon: "💰", label: "Finance" },
-  Operations:  { color: T.amber,   icon: "🏢", label: "Operations" },
-};
-
-/* ── Pre-seeded Requests ─────────────────────────────────────────── */
-const SEED_REQUESTS = [
-  {
-    id: "REQ-0039", title: "Salesforce access — Sales dashboard",
-    domain: "IT", status: "completed", created: "Mar 14",
-    summary: "Read access to Sales Cloud granted. License assigned.",
-    steps: [
-      { label: "Submitted",         done: true,  time: "Mar 14 9:02am" },
-      { label: "AI routed → IT",    done: true,  time: "Mar 14 9:02am" },
-      { label: "License verified",  done: true,  time: "Mar 14 9:08am" },
-      { label: "Access provisioned",done: true,  time: "Mar 14 9:15am" },
-      { label: "Completed",         done: true,  time: "Mar 14 9:15am" },
-    ],
-  },
-  {
-    id: "REQ-0040", title: "PTO request — Mar 25–28 (4 days)",
-    domain: "HR", status: "approved", created: "Mar 16",
-    summary: "PTO approved by Sarah Park. Calendar updated. 4 days deducted.",
-    steps: [
-      { label: "Submitted",         done: true,  time: "Mar 16 2:11pm" },
-      { label: "AI routed → HR",    done: true,  time: "Mar 16 2:11pm" },
-      { label: "Balance checked",   done: true,  time: "Mar 16 2:11pm" },
-      { label: "Manager approval",  done: true,  time: "Mar 16 2:44pm" },
-      { label: "Calendar updated",  done: true,  time: "Mar 16 2:44pm" },
-    ],
-  },
+/* ── Seed requests ── */
+const SEED: any[] = [
+  { id:"REQ-0039", title:"Salesforce read access — Sales Cloud dashboard", domain:"IT",
+    status:"completed", created:"Mar 14", confidence:"0.96", latency:"244ms",
+    summary:"Access granted. Salesforce Sales Cloud license assigned. Effective immediately.",
+    steps:[
+      {label:"Submitted",          done:true, time:"Mar 14 9:02am"},
+      {label:"AI routed → IT",     done:true, time:"Mar 14 9:02am"},
+      {label:"License verified",   done:true, time:"Mar 14 9:08am"},
+      {label:"Access provisioned", done:true, time:"Mar 14 9:15am"},
+      {label:"Completed",          done:true, time:"Mar 14 9:15am"},
+    ]},
+  { id:"REQ-0040", title:"PTO request — Mar 25–28 (4 days)", domain:"HR",
+    status:"approved", created:"Mar 16", confidence:"0.98", latency:"201ms",
+    summary:"Approved by Sarah Park. 4 days deducted from balance. Calendar updated.",
+    steps:[
+      {label:"Submitted",          done:true, time:"Mar 16 2:11pm"},
+      {label:"AI routed → HR",     done:true, time:"Mar 16 2:11pm"},
+      {label:"Balance check",      done:true, time:"Mar 16 2:11pm"},
+      {label:"Manager approval",   done:true, time:"Mar 16 2:44pm"},
+      {label:"Calendar updated",   done:true, time:"Mar 16 2:44pm"},
+    ]},
 ];
 
-/* ── Quick Action Scenarios ──────────────────────────────────────── */
-const QUICK_ACTIONS = [
-  { label: "New laptop",       domain: "IT",         prompt: "I need a new laptop — mine is 4 years old and running slow" },
-  { label: "Software access",  domain: "IT",         prompt: "I need access to Figma for a new design project" },
-  { label: "Request time off", domain: "HR",         prompt: "I need to request PTO April 7–11 (5 days)" },
-  { label: "Expense report",   domain: "Finance",    prompt: "I need to submit an expense report for a client dinner last week — $240" },
-  { label: "Badge access",     domain: "Operations", prompt: "I need badge access to the 3rd floor lab" },
-  { label: "VPN setup",        domain: "IT",         prompt: "I need help setting up VPN for remote work" },
+/* ── Announcements ── */
+const NOTICES = [
+  { domain:"HR",       color: T.violet,  text:"Open enrollment closes March 31. Update benefits before the deadline." },
+  { domain:"IT",       color: T.teal,    text:"Scheduled maintenance Sat Mar 22 11pm–2am. Brief VPN downtime expected." },
+  { domain:"Finance",  color: T.emerald, text:"Q1 expense reports due April 4. Submit via FrontDoor or Finance portal." },
+  { domain:"Security", color: T.rose,    text:"Annual access review due March 28. Check your entitlements in Security." },
 ];
 
-/* ── Department Buttons ──────────────────────────────────────────── */
-const DEPT_TILES = [
-  { domain: "IT",         desc: "Devices, access, software",    scenarios: ["New laptop", "Software license", "VPN", "Password reset"] },
-  { domain: "HR",         desc: "Leave, benefits, onboarding",  scenarios: ["PTO request", "Benefits change", "Address update", "New hire kit"] },
-  { domain: "Finance",    desc: "Expenses, POs, reimbursements", scenarios: ["Expense report", "Purchase order", "Invoice query"] },
-  { domain: "Operations", desc: "Facilities, badges, supplies",  scenarios: ["Badge access", "Office supplies", "Parking", "Room booking"] },
-];
-
-/* ── Announcements ───────────────────────────────────────────────── */
-const ANNOUNCEMENTS = [
-  { id: 1, tag: "HR",      color: T.violet, text: "Open enrollment closes March 31 — update your benefits before the deadline." },
-  { id: 2, tag: "IT",      color: T.teal,   text: "Scheduled maintenance Sat Mar 22 11pm–2am. Expect brief VPN downtime." },
-  { id: 3, tag: "Finance", color: T.emerald,text: "Q1 expense reports due April 4. Submit via FrontDoor or Finance portal." },
-];
-
-/* ── Flow Simulator ──────────────────────────────────────────────── */
-function buildFlow(domain: string, title: string, needsApproval: boolean) {
-  const base = [
-    { label: "Submitted",                     done: true,  time: "just now",   active: false },
-    { label: `AI routed → ${domain}`,         done: false, time: "",           active: true  },
-    { label: domain === "IT" ? "Ticket created in ServiceNow" : domain === "HR" ? "Policy check in Workday" : domain === "Finance" ? "GL code validated" : "Facilities notified",
-                                              done: false, time: "",           active: false },
+/* ── AI Steps builder ── */
+function buildSteps(domain: string, approval: boolean) {
+  const systemMap: Record<string, string> = {
+    IT:"ServiceNow ticket created", HR:"Workday policy checked",
+    Finance:"GL code & budget validated", Legal:"Legal queue assigned",
+    Facilities:"Facilities management notified", Security:"IAM review initiated",
+    Operations:"Ops team alerted", Marketing:"Creative team notified",
+  };
+  const steps = [
+    {label:"Submitted",                    done:true,  active:false, time:"just now"},
+    {label:`AI routed → ${domain}`,        done:false, active:true,  time:""},
+    {label:systemMap[domain]||"Processing",done:false, active:false, time:""},
   ];
-  if (needsApproval) {
-    base.push({ label: "Manager approval required", done: false, time: "", active: false });
-    base.push({ label: "Approved — processing",      done: false, time: "", active: false });
+  if (approval) {
+    steps.push({label:"Manager approval",  done:false, active:false, time:""});
+    steps.push({label:"Approved",          done:false, active:false, time:""});
   }
-  base.push({ label: "Completed",                   done: false, time: "", active: false });
-  return base;
+  steps.push({label:"Completed",           done:false, active:false, time:""});
+  return steps;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   REQUEST DETAIL DRAWER
-───────────────────────────────────────────────────────────────── */
-function RequestDrawer({
-  req, onClose, onApprove,
-}: {
-  req: any; onClose: () => void; onApprove?: () => void;
-}) {
-  const cfg = STATUS_CFG[req.status] || STATUS_CFG.submitted;
-  const dom = DOMAIN_CFG[req.domain] || DOMAIN_CFG.IT;
+/* ── Classify domain from text ── */
+function classifyDomain(text: string): string {
+  const t = text.toLowerCase();
+  if (t.match(/laptop|computer|software|figma|vpn|password|device|license|it |tech|monitor|keyboard|slack|zoom|email|git|code|deploy/)) return "IT";
+  if (t.match(/pto|leave|vacation|hr|benefit|onboard|address|time off|sick|payroll|401|insurance|direct deposit|people/)) return "HR";
+  if (t.match(/expense|receipt|reimburs|purchase|invoice|budget|finance|po |vendor|payment|credit card|travel|spend/)) return "Finance";
+  if (t.match(/nda|contract|legal|compliance|ip |intellectual|trademark|patent|privacy|hold|clause/)) return "Legal";
+  if (t.match(/badge|room|parking|office|supplies|desk|building|visitor|facilities|move|floor/)) return "Facilities";
+  if (t.match(/mfa|security|incident|phish|access review|audit|privileged|dlp|soc|threat|malware/)) return "Security";
+  if (t.match(/marketing|brand|creative|campaign|social|swag|event|press|media|logo|asset/)) return "Marketing";
+  return "Operations";
+}
+
+/* ════════════════════════════════════════════════════════════════
+   REQUEST DRAWER
+════════════════════════════════════════════════════════════════ */
+function Drawer({ req, onClose, onApprove }: { req: any; onClose: () => void; onApprove?: () => void }) {
+  const cfg = S[req.status] || S.submitted;
+  const dom = DOMAINS.find(d => d.id === req.domain) || DOMAINS[0];
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 500,
-      display: "flex", alignItems: "flex-end", justifyContent: "flex-end",
-    }}
-      onClick={onClose}
-    >
-      {/* Backdrop */}
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)" }} />
-
-      {/* Panel */}
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          position: "relative", zIndex: 1,
-          width: 420, height: "100vh",
-          background: T.navyMid, borderLeft: `1px solid ${T.border}`,
-          display: "flex", flexDirection: "column",
-          overflowY: "auto",
-        }}
-      >
+    <div style={{position:"fixed",inset:0,zIndex:600,display:"flex",justifyContent:"flex-end"}}
+      onClick={onClose}>
+      <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(2px)"}}/>
+      <div onClick={e=>e.stopPropagation()} style={{
+        position:"relative",zIndex:1,width:420,height:"100vh",
+        background:T.navyMid,borderLeft:`1px solid ${T.border}`,
+        display:"flex",flexDirection:"column",overflowY:"auto",
+      }}>
         {/* Header */}
-        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{padding:"22px 24px",borderBottom:`1px solid ${T.border}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: T.muted }}>{req.id}</span>
-                <span style={{
-                  background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}30`,
-                  borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700,
-                  fontFamily: "'DM Mono', monospace",
-                }}>{cfg.label}</span>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
+                <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:T.muted}}>{req.id}</span>
+                <span style={{background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.color}30`,
+                  borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>
+                  {cfg.label}</span>
               </div>
-              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: T.bright, fontWeight: 700, lineHeight: 1.2 }}>
-                {req.title}
-              </h3>
+              <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:T.bright,fontWeight:700,lineHeight:1.2}}>
+                {req.title}</h3>
             </div>
-            <button onClick={onClose} style={{
-              background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 20, padding: 4,
-            }}>×</button>
+            <button onClick={onClose} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:22,padding:4}}>×</button>
           </div>
-
-          <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-            <span style={{ background: dom.color + "18", color: dom.color, border: `1px solid ${dom.color}30`, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontFamily: "'DM Mono', monospace" }}>
-              {dom.icon} {dom.label}
-            </span>
-            <span style={{ color: T.muted, fontSize: 12 }}>Submitted {req.created}</span>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap" as const}}>
+            <span style={{background:dom.color+"18",color:dom.color,border:`1px solid ${dom.color}25`,
+              borderRadius:4,padding:"2px 10px",fontSize:11,fontFamily:"'DM Mono',monospace"}}>
+              {dom.icon} {dom.label}</span>
+            <span style={{color:T.muted,fontSize:12}}>Submitted {req.created}</span>
           </div>
         </div>
 
         {/* Timeline */}
-        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 14 }}>PROGRESS</div>
+        <div style={{padding:"20px 24px",borderBottom:`1px solid ${T.border}`}}>
+          <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em",marginBottom:14}}>PROGRESS TIMELINE</div>
           {req.steps.map((step: any, i: number) => (
-            <div key={i} style={{ display: "flex", gap: 12, marginBottom: i < req.steps.length - 1 ? 4 : 0 }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 20 }}>
+            <div key={i} style={{display:"flex",gap:12,marginBottom:0}}>
+              <div style={{display:"flex",flexDirection:"column" as const,alignItems:"center",width:20}}>
                 <div style={{
-                  width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
-                  background: step.done ? T.emerald : step.active ? T.gold : "rgba(255,255,255,0.08)",
-                  border: `2px solid ${step.done ? T.emerald : step.active ? T.gold : "rgba(255,255,255,0.12)"}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 9, color: step.done ? T.navy : "transparent",
-                  boxShadow: step.active ? `0 0 8px ${T.gold}60` : "none",
-                }}>
-                  {step.done ? "✓" : step.active ? "·" : ""}
-                </div>
-                {i < req.steps.length - 1 && (
-                  <div style={{ width: 2, flex: 1, minHeight: 16, background: step.done ? T.emerald + "40" : "rgba(255,255,255,0.06)", marginTop: 3 }} />
-                )}
+                  width:18,height:18,borderRadius:"50%",flexShrink:0,marginTop:1,
+                  background:step.done?T.emerald:step.active?T.gold:"rgba(255,255,255,0.07)",
+                  border:`2px solid ${step.done?T.emerald:step.active?T.gold:"rgba(255,255,255,0.1)"}`,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  fontSize:9,color:step.done?T.navy:"transparent",
+                  boxShadow:step.active?`0 0 10px ${T.gold}70`:"none",
+                  animation:step.active?"pulseStep 1.5s ease infinite":"none",
+                }}>{step.done?"✓":""}</div>
+                {i<req.steps.length-1&&<div style={{width:2,flex:1,minHeight:20,
+                  background:step.done?T.emerald+"40":"rgba(255,255,255,0.05)",marginTop:3}}/>}
               </div>
-              <div style={{ paddingBottom: 16 }}>
-                <div style={{ color: step.done ? T.text : step.active ? T.gold : T.muted, fontSize: 13, fontWeight: step.active ? 600 : 400 }}>
-                  {step.label}
-                </div>
-                {step.time && <div style={{ color: T.muted, fontSize: 11, marginTop: 2, fontFamily: "'DM Mono', monospace" }}>{step.time}</div>}
+              <div style={{paddingBottom:18}}>
+                <div style={{color:step.done?T.text:step.active?T.gold:T.muted,fontSize:13,fontWeight:step.active?600:400}}>
+                  {step.label}</div>
+                {step.time&&<div style={{color:T.muted,fontSize:11,marginTop:1,fontFamily:"'DM Mono',monospace"}}>{step.time}</div>}
               </div>
             </div>
           ))}
         </div>
 
         {/* Summary */}
-        {req.summary && (
-          <div style={{ padding: "16px 24px", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 8 }}>RESOLUTION</div>
-            <p style={{ color: T.text, fontSize: 13, lineHeight: 1.6 }}>{req.summary}</p>
+        {req.summary&&(
+          <div style={{padding:"16px 24px",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em",marginBottom:8}}>RESOLUTION</div>
+            <p style={{color:T.text,fontSize:13,lineHeight:1.65}}>{req.summary}</p>
           </div>
         )}
 
-        {/* Approval action */}
-        {req.status === "pending" && onApprove && (
-          <div style={{ padding: "16px 24px" }}>
-            <div style={{ background: T.amberDim, border: `1px solid rgba(245,158,11,0.25)`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
-              <div style={{ color: T.amber, fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Manager Approval Required</div>
-              <div style={{ color: T.muted, fontSize: 12 }}>{EMPLOYEE.manager} needs to approve this request before it proceeds.</div>
+        {/* Approval */}
+        {req.status==="pending"&&onApprove&&(
+          <div style={{padding:"16px 24px",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{background:T.amberDim,border:`1px solid rgba(245,158,11,0.22)`,borderRadius:10,padding:16,marginBottom:12}}>
+              <div style={{color:T.amber,fontSize:13,fontWeight:600,marginBottom:3}}>Manager Approval Required</div>
+              <div style={{color:T.muted,fontSize:12}}>{EMP.manager} needs to approve before this proceeds.</div>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={onApprove} style={{
-                flex: 1, padding: "10px 0", borderRadius: 8,
-                background: T.gold, border: "none", color: T.navy, fontWeight: 700,
-                fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-              }}>Simulate: Manager Approves ✓</button>
-              <button style={{
-                padding: "10px 14px", borderRadius: 8,
-                background: "transparent", border: `1px solid ${T.border}`,
-                color: T.muted, cursor: "pointer", fontSize: 13,
-              }}>Deny</button>
-            </div>
+            <button onClick={onApprove} style={{
+              width:"100%",padding:"11px 0",borderRadius:8,background:T.gold,
+              border:"none",color:T.navy,fontWeight:700,fontSize:13,cursor:"pointer",
+              fontFamily:"'DM Sans',sans-serif",
+            }}>Simulate: Manager Approves ✓</button>
           </div>
         )}
 
-        {/* AI routing info */}
-        <div style={{ padding: "16px 24px", margin: "0 24px 24px", background: T.violetDim, border: `1px solid rgba(139,92,246,0.18)`, borderRadius: 10 }}>
-          <div style={{ fontSize: 11, color: T.violet, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 8 }}>SIGNAL ENGINE AUDIT</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {/* Signal Engine Audit */}
+        <div style={{margin:"16px 24px 24px",background:T.violetDim,border:`1px solid rgba(139,92,246,0.18)`,borderRadius:10,padding:16}}>
+          <div style={{fontSize:10,color:T.violet,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em",marginBottom:12}}>SIGNAL ENGINE AUDIT · TRUSTCORE</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             {[
-              { k: "Domain",     v: req.domain },
-              { k: "Confidence", v: req.confidence || "0.94" },
-              { k: "Model",      v: "Gemini 2.0 Flash" },
-              { k: "Latency",    v: req.latency || "271ms" },
-            ].map(({ k, v }) => (
+              {k:"Domain",     v:req.domain},
+              {k:"Confidence", v:req.confidence||"0.94"},
+              {k:"Model",      v:"Gemini 2.0 Flash"},
+              {k:"Latency",    v:req.latency||"271ms"},
+              {k:"Data Model", v:"Unified / RLS"},
+              {k:"Audit ID",   v:req.id+"-LOG"},
+            ].map(({k,v})=>(
               <div key={k}>
-                <div style={{ color: T.muted, fontSize: 10, marginBottom: 2 }}>{k}</div>
-                <div style={{ color: T.text, fontSize: 12, fontFamily: "'DM Mono', monospace" }}>{v}</div>
+                <div style={{color:T.muted,fontSize:10,marginBottom:2}}>{k}</div>
+                <div style={{color:T.text,fontSize:12,fontFamily:"'DM Mono',monospace"}}>{v}</div>
               </div>
             ))}
           </div>
@@ -280,325 +260,274 @@ function RequestDrawer({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   MAIN DASHBOARD
-───────────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════
+   MAIN
+════════════════════════════════════════════════════════════════ */
 export default function EmployeeDashboard() {
-  const [requests, setRequests]     = useState<any[]>(SEED_REQUESTS);
-  const [chatInput, setChatInput]   = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [activeReq, setActiveReq]   = useState<any>(null);
-  const [notifOpen, setNotifOpen]   = useState(false);
-  const [deptModal, setDeptModal]   = useState<string | null>(null);
+  const [requests, setRequests]   = useState<any[]>(SEED);
+  const [input, setInput]         = useState("");
+  const [sending, setSending]     = useState(false);
+  const [activeReq, setActiveReq] = useState<any>(null);
+  const [activeDomain, setActiveDomain] = useState<string|null>(null);
+  const [notifOpen, setNotifOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const openCount = requests.filter(r => !["completed", "cancelled"].includes(r.status)).length;
+  const greeting = hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  const openCount = requests.filter(r=>!["completed","cancelled"].includes(r.status)).length;
 
-  /* Simulate request flow progression */
-  function progressRequest(id: string) {
-    const flow: Record<string, string> = {
-      submitted:   "routing",
-      routing:     "in_progress",
-      in_progress: "pending",
-      pending:     "approved",
-      approved:    "completed",
-    };
-    setRequests(prev => prev.map(r => {
-      if (r.id !== id) return r;
-      const nextStatus = flow[r.status];
-      if (!nextStatus) return r;
-      const nextSteps = r.steps.map((s: any, i: number) => {
-        const doneCount = Object.keys(flow).indexOf(nextStatus) + 1;
-        return { ...s, done: i < doneCount, active: i === doneCount, time: i < doneCount ? s.time || "just now" : s.time };
-      });
-      return { ...r, status: nextStatus, steps: nextSteps };
-    }));
-    // Refresh drawer
-    setActiveReq((prev: any) => {
-      if (!prev || prev.id !== id) return prev;
-      return requests.find(r => r.id === id) || prev;
-    });
-  }
-
-  /* Submit a new request */
-  async function submitRequest(text: string) {
-    if (!text.trim() || submitting) return;
-    setSubmitting(true);
-    setChatInput("");
-
-    // Classify domain from keywords
-    const t = text.toLowerCase();
-    const domain =
-      t.match(/laptop|computer|software|access|vpn|password|device|figma|license|ticket|email|slack|zoom|adobe|it |tech/) ? "IT" :
-      t.match(/pto|leave|vacation|benefit|hr|onboard|address|time off|sick|payroll|401|insurance/) ? "HR" :
-      t.match(/expense|receipt|reimburs|purchase|invoice|budget|finance|po |vendor|payment/) ? "Finance" :
-      "Operations";
-
-    const needsApproval = domain === "HR" || domain === "Finance" || text.toLowerCase().includes("laptop");
-    const id = `REQ-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-    const steps = buildFlow(domain, text, needsApproval);
-    const newReq = {
-      id,
-      title: text.length > 60 ? text.slice(0, 57) + "…" : text,
-      domain,
-      status: "submitted",
-      created: "just now",
-      confidence: (0.88 + Math.random() * 0.1).toFixed(2),
-      latency: `${220 + Math.floor(Math.random() * 120)}ms`,
-      steps,
-    };
-    setRequests(prev => [newReq, ...prev]);
-    setSubmitting(false);
-
-    // Auto-progress: submitted → routing after 1.2s
-    setTimeout(() => {
-      setRequests(prev => prev.map(r => r.id === id
-        ? { ...r, status: "routing", steps: r.steps.map((s: any, i: number) => ({ ...s, done: i === 0, active: i === 1, time: i === 0 ? "just now" : s.time })) }
-        : r
-      ));
-    }, 1200);
-
-    // routing → in_progress after 2.8s
-    setTimeout(() => {
-      setRequests(prev => prev.map(r => r.id === id
-        ? { ...r, status: "in_progress", steps: r.steps.map((s: any, i: number) => ({ ...s, done: i <= 1, active: i === 2, time: i <= 1 ? "just now" : s.time })) }
-        : r
-      ));
-    }, 2800);
-
-    // in_progress → pending (if needed) after 5s
-    if (needsApproval) {
-      setTimeout(() => {
-        setRequests(prev => prev.map(r => r.id === id
-          ? { ...r, status: "pending", steps: r.steps.map((s: any, i: number) => ({ ...s, done: i <= 2, active: i === 3, time: i <= 2 ? "just now" : s.time })) }
-          : r
-        ));
-      }, 5000);
-    }
-  }
-
-  const openRequest = (req: any) => {
-    // Re-sync latest state
-    const latest = requests.find(r => r.id === req.id) || req;
-    setActiveReq(latest);
-  };
-
-  // Keep drawer in sync as requests update
-  useEffect(() => {
+  /* Keep drawer in sync */
+  useEffect(()=>{
     if (activeReq) {
-      const updated = requests.find(r => r.id === activeReq.id);
+      const updated = requests.find(r=>r.id===activeReq.id);
       if (updated) setActiveReq(updated);
     }
-  }, [requests]);
+  },[requests]);
+
+  function advance(id: string, toStatus: string, stepIdx: number) {
+    setRequests(prev=>prev.map(r=>{
+      if (r.id!==id) return r;
+      const steps = r.steps.map((s:any,i:number)=>({
+        ...s, done:i<stepIdx, active:i===stepIdx, time:i<stepIdx?s.time||"just now":s.time
+      }));
+      return {...r, status:toStatus, steps};
+    }));
+  }
+
+  async function submit(text: string) {
+    if (!text.trim()||sending) return;
+    setSending(true);
+    setInput("");
+
+    const domain  = classifyDomain(text);
+    const needsApproval = ["HR","Finance","Legal"].includes(domain) || text.toLowerCase().includes("laptop");
+    const id = `REQ-${String(Math.floor(Math.random()*9000)+1000)}`;
+    const newReq = {
+      id, domain, status:"submitted",
+      title: text.length>65 ? text.slice(0,62)+"…" : text,
+      created:"just now",
+      confidence:(0.88+Math.random()*0.1).toFixed(2),
+      latency:`${200+Math.floor(Math.random()*150)}ms`,
+      steps: buildSteps(domain, needsApproval),
+    };
+    setRequests(prev=>[newReq,...prev]);
+    setSending(false);
+
+    setTimeout(()=>advance(id,"routing",1),      1200);
+    setTimeout(()=>advance(id,"in_progress",2),  2800);
+    if (needsApproval) setTimeout(()=>advance(id,"pending",3), 5000);
+  }
+
+  const openDom = DOMAINS.find(d=>d.id===activeDomain);
 
   return (
-    <div style={{ background: T.navy, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", color: T.text }}>
+    <div style={{background:T.navy,minHeight:"100vh",fontFamily:"'DM Sans',sans-serif",color:T.text}}>
 
       {/* ── HEADER ── */}
-      <div style={{
-        background: T.navyMid, borderBottom: `1px solid ${T.border}`,
-        padding: "0 28px", height: 56,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 100,
-      }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
-            <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={T.gold} strokeWidth="1.5" />
-            <polygon points="16,8 24,12.5 24,21.5 16,26 8,21.5 8,12.5" fill={T.goldDim} stroke={T.gold} strokeWidth="0.7" />
+      <div style={{background:T.navyDeep,borderBottom:`1px solid ${T.border}`,
+        padding:"0 28px",height:54,display:"flex",alignItems:"center",
+        justifyContent:"space-between",position:"sticky",top:0,zIndex:200}}>
+
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+            <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={T.gold} strokeWidth="1.5"/>
+            <polygon points="16,8 24,12.5 24,21.5 16,26 8,21.5 8,12.5" fill={T.goldDim} stroke={T.gold} strokeWidth="0.7"/>
           </svg>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 700, color: T.gold }}>iOPEX FrontDoor</span>
-          <span style={{ color: T.muted, fontSize: 11, marginLeft: 4 }}>· Acme Corp</span>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:T.gold}}>
+            iOPEX FrontDoor
+          </span>
+          <span style={{color:T.muted,fontSize:11}}>· Acme Corp</span>
+          {/* Platform tagline */}
+          <span style={{
+            marginLeft:12,padding:"2px 10px",
+            background:"rgba(232,160,32,0.06)",border:`1px solid ${T.goldBorder}`,
+            borderRadius:20,color:T.muted,fontSize:10,fontFamily:"'DM Mono',monospace",
+            letterSpacing:"0.04em",
+          }}>One Platform · One Data Model · Every Corner of Your Business</span>
         </div>
 
-        {/* Right: notif + profile */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          {/* Notifications */}
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setNotifOpen(p => !p)} style={{
-              background: "none", border: "none", cursor: "pointer",
-              color: T.muted, fontSize: 18, padding: 4, position: "relative",
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          {/* Notif bell */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setNotifOpen(p=>!p)} style={{
+              background:"none",border:"none",cursor:"pointer",
+              color:T.muted,fontSize:16,padding:4,position:"relative",
             }}>
               🔔
-              {openCount > 0 && (
-                <span style={{
-                  position: "absolute", top: 0, right: 0,
-                  width: 16, height: 16, borderRadius: "50%",
-                  background: T.gold, color: T.navy, fontSize: 9, fontWeight: 700,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>{openCount}</span>
-              )}
+              {NOTICES.length>0&&<span style={{
+                position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",
+                background:T.gold,color:T.navy,fontSize:8,fontWeight:700,
+                display:"flex",alignItems:"center",justifyContent:"center",
+              }}>{NOTICES.length}</span>}
             </button>
-            {notifOpen && (
+            {notifOpen&&(
               <div style={{
-                position: "absolute", right: 0, top: 36,
-                width: 280, background: T.navyCard, border: `1px solid ${T.border}`,
-                borderRadius: 10, overflow: "hidden", zIndex: 200,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                position:"absolute",right:0,top:36,width:300,
+                background:T.navyCard,border:`1px solid ${T.border}`,
+                borderRadius:10,overflow:"hidden",zIndex:300,
+                boxShadow:"0 12px 40px rgba(0,0,0,0.5)",
               }}>
-                <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, fontSize: 12, color: T.muted, fontWeight: 600 }}>NOTIFICATIONS</div>
-                {ANNOUNCEMENTS.map(a => (
-                  <div key={a.id} style={{ padding: "10px 16px", borderBottom: `1px solid ${T.borderMid}` }}>
-                    <span style={{ background: a.color + "18", color: a.color, fontSize: 9, fontFamily: "'DM Mono', monospace", padding: "1px 6px", borderRadius: 3, marginRight: 6 }}>{a.tag}</span>
-                    <span style={{ color: T.text, fontSize: 12 }}>{a.text}</span>
+                <div style={{padding:"10px 16px",borderBottom:`1px solid ${T.border}`,
+                  fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.06em"}}>
+                  ANNOUNCEMENTS</div>
+                {NOTICES.map((n,i)=>(
+                  <div key={i} style={{padding:"10px 16px",borderBottom:`1px solid ${T.borderMid}`}}>
+                    <span style={{background:n.color+"18",color:n.color,fontSize:9,
+                      fontFamily:"'DM Mono',monospace",padding:"1px 6px",borderRadius:3,marginRight:6}}>
+                      {n.domain}</span>
+                    <span style={{color:T.text,fontSize:12,lineHeight:1.5}}>{n.text}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Profile chip */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          {/* Profile */}
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
             <div style={{
-              width: 32, height: 32, borderRadius: "50%",
-              background: `linear-gradient(135deg, ${T.gold}40, ${T.gold}20)`,
-              border: `1px solid ${T.goldBorder}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontWeight: 700, color: T.gold, fontFamily: "'DM Mono', monospace",
-            }}>{EMPLOYEE.avatar}</div>
+              width:30,height:30,borderRadius:"50%",
+              background:`linear-gradient(135deg,${T.gold}40,${T.gold}15)`,
+              border:`1px solid ${T.goldBorder}`,
+              display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:11,fontWeight:700,color:T.gold,fontFamily:"'DM Mono',monospace",
+            }}>{EMP.avatar}</div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: T.bright, lineHeight: 1.2 }}>{EMPLOYEE.name}</div>
-              <div style={{ fontSize: 10, color: T.muted, fontFamily: "'DM Mono', monospace" }}>{EMPLOYEE.id}</div>
+              <div style={{fontSize:12,fontWeight:600,color:T.bright,lineHeight:1.1}}>{EMP.name}</div>
+              <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace"}}>{EMP.id}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ── BODY ── */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
+      <div style={{maxWidth:1140,margin:"0 auto",padding:"28px 24px"}}>
 
-        {/* ── GREETING + CHAT BAR ── */}
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: T.bright, marginBottom: 4 }}>
-            {greeting}, {EMPLOYEE.first}.
+        {/* ── GREETING + UNIFIED CHAT BAR ── */}
+        <div style={{marginBottom:32}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontWeight:700,color:T.bright,marginBottom:4}}>
+            {greeting}, {EMP.first}.
           </div>
-          <div style={{ color: T.muted, fontSize: 13, marginBottom: 18 }}>
-            {EMPLOYEE.role} · {EMPLOYEE.dept} · {EMPLOYEE.location}
+          <div style={{color:T.muted,fontSize:13,marginBottom:20}}>
+            {EMP.role} · {EMP.dept} · {EMP.location} · PTO balance: <span style={{color:T.violet}}>{EMP.pto} days</span>
           </div>
 
-          {/* Chat bar */}
+          {/* THE unified bar */}
           <div style={{
-            background: T.navyCard, border: `1px solid ${T.goldBorder}`,
-            borderRadius: 12, padding: "4px 6px 4px 18px",
-            display: "flex", alignItems: "center", gap: 10,
-            boxShadow: `0 0 32px rgba(232,160,32,0.06)`,
+            background:T.navyCard,
+            border:`1px solid ${T.goldBorder}`,
+            borderRadius:14,padding:"5px 6px 5px 20px",
+            display:"flex",alignItems:"center",gap:12,
+            boxShadow:`0 0 40px ${T.goldGlow}, 0 0 0 1px ${T.goldBorder}`,
           }}>
-            <span style={{ color: T.muted, fontSize: 16 }}>⬡</span>
-            <input
-              ref={inputRef}
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && submitRequest(chatInput)}
-              placeholder="What do you need today? (e.g. I need a new laptop, request time off, expense report…)"
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none" style={{flexShrink:0}}>
+              <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={T.gold} strokeWidth="1.5"/>
+            </svg>
+            <input ref={inputRef} value={input}
+              onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&submit(input)}
+              placeholder="What do you need? IT · HR · Finance · Legal · Facilities · Security · Ops · Marketing…"
               style={{
-                flex: 1, background: "none", border: "none", outline: "none",
-                fontSize: 14, color: T.bright, fontFamily: "'DM Sans', sans-serif",
-                padding: "10px 0",
+                flex:1,background:"none",border:"none",outline:"none",
+                fontSize:14,color:T.bright,fontFamily:"'DM Sans',sans-serif",padding:"11px 0",
               }}
             />
-            <button
-              onClick={() => submitRequest(chatInput)}
-              disabled={!chatInput.trim() || submitting}
-              style={{
-                padding: "9px 18px", borderRadius: 8, border: "none",
-                background: chatInput.trim() ? T.gold : "rgba(255,255,255,0.06)",
-                color: chatInput.trim() ? T.navy : T.muted,
-                fontWeight: 700, fontSize: 13, cursor: chatInput.trim() ? "pointer" : "default",
-                fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s", flexShrink: 0,
-              }}
-            >
-              {submitting ? "Routing…" : "Submit →"}
-            </button>
+            <button onClick={()=>submit(input)} disabled={!input.trim()||sending} style={{
+              padding:"10px 22px",borderRadius:9,border:"none",
+              background:input.trim()?T.gold:"rgba(255,255,255,0.05)",
+              color:input.trim()?T.navy:T.muted,fontWeight:700,fontSize:13,
+              cursor:input.trim()?"pointer":"default",fontFamily:"'DM Sans',sans-serif",
+              transition:"all 0.15s",flexShrink:0,
+            }}>{sending?"Routing…":"Submit →"}</button>
           </div>
 
-          {/* Quick chips */}
-          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" as const }}>
-            <span style={{ color: T.muted, fontSize: 11, alignSelf: "center" }}>Quick:</span>
-            {QUICK_ACTIONS.map(q => {
-              const d = DOMAIN_CFG[q.domain];
-              return (
-                <button key={q.label} onClick={() => submitRequest(q.prompt)} style={{
-                  padding: "4px 12px", borderRadius: 20, border: `1px solid ${d.color}25`,
-                  background: d.color + "0D", color: d.color,
-                  fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                  transition: "all 0.15s",
-                }}>
-                  {q.label}
-                </button>
-              );
-            })}
+          {/* One-line value prop under bar */}
+          <div style={{textAlign:"center" as const,marginTop:10,color:T.muted,fontSize:11,fontFamily:"'DM Mono',monospace",letterSpacing:"0.04em"}}>
+            One request. One AI. Every system. — Powered by iOPEX Signal Engine
           </div>
         </div>
 
-        {/* ── 2-COLUMN LAYOUT ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "start" }}>
+        {/* ── MAIN GRID ── */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 310px",gap:20,alignItems:"start"}}>
 
-          {/* LEFT: Requests + Dept tiles */}
+          {/* LEFT */}
           <div>
-            {/* My Requests */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em" }}>
+
+            {/* ── EVERY CORNER — domain grid ── */}
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",
+                letterSpacing:"0.07em",marginBottom:14}}>EVERY CORNER OF YOUR BUSINESS</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                {DOMAINS.map(d=>(
+                  <button key={d.id} onClick={()=>setActiveDomain(d.id)} style={{
+                    background:T.navyCard,border:`1px solid ${T.border}`,
+                    borderRadius:10,padding:"14px 14px 12px",textAlign:"left" as const,
+                    cursor:"pointer",transition:"all 0.15s",
+                  }}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=d.color+"45";e.currentTarget.style.background=T.navyHover;}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.navyCard;}}
+                  >
+                    <div style={{
+                      width:30,height:30,borderRadius:8,marginBottom:8,
+                      background:d.color+"18",border:`1px solid ${d.color}22`,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:15,color:d.color,
+                    }}>{d.icon}</div>
+                    <div style={{fontWeight:600,fontSize:12,color:d.color,marginBottom:2}}>{d.label}</div>
+                    <div style={{fontSize:10,color:T.muted,lineHeight:1.4}}>{d.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── MY REQUESTS ── */}
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em"}}>
                   MY REQUESTS
-                  {openCount > 0 && <span style={{ color: T.gold, marginLeft: 8 }}>{openCount} active</span>}
+                  {openCount>0&&<span style={{color:T.gold,marginLeft:8}}>{openCount} active</span>}
                 </div>
               </div>
-
-              <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-                {requests.map(req => {
-                  const cfg = STATUS_CFG[req.status] || STATUS_CFG.submitted;
-                  const dom = DOMAIN_CFG[req.domain] || DOMAIN_CFG.IT;
-                  const isActive = !["completed", "cancelled"].includes(req.status);
+              <div style={{display:"flex",flexDirection:"column" as const,gap:8}}>
+                {requests.map(req=>{
+                  const cfg = S[req.status]||S.submitted;
+                  const dom = DOMAINS.find(d=>d.id===req.domain)||DOMAINS[0];
+                  const live = !["completed","cancelled"].includes(req.status);
+                  const pct  = req.status==="routing"?"20%":req.status==="in_progress"?"45%":req.status==="pending"?"65%":req.status==="approved"?"85%":"100%";
                   return (
-                    <div
-                      key={req.id}
-                      onClick={() => openRequest(req)}
+                    <div key={req.id} onClick={()=>setActiveReq(requests.find(r=>r.id===req.id)||req)}
                       style={{
-                        background: T.navyCard, border: `1px solid ${isActive ? T.border : T.borderMid}`,
-                        borderRadius: 10, padding: "14px 16px", cursor: "pointer",
-                        transition: "all 0.15s",
-                        borderLeft: `3px solid ${isActive ? dom.color : "transparent"}`,
+                        background:T.navyCard,border:`1px solid ${live?T.border:T.borderMid}`,
+                        borderRadius:10,padding:"13px 16px",cursor:"pointer",
+                        borderLeft:`3px solid ${live?dom.color:"transparent"}`,
+                        transition:"all 0.15s",
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = T.navyHover)}
-                      onMouseLeave={e => (e.currentTarget.style.background = T.navyCard)}
+                      onMouseEnter={e=>e.currentTarget.style.background=T.navyHover}
+                      onMouseLeave={e=>e.currentTarget.style.background=T.navyCard}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, color: T.bright, fontWeight: 500, marginBottom: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
-                            {req.title}
-                          </div>
-                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                            <span style={{ fontSize: 10, fontFamily: "'DM Mono', monospace", color: T.muted }}>{req.id}</span>
-                            <span style={{ color: dom.color, fontSize: 11 }}>{dom.icon} {dom.label}</span>
-                            <span style={{ color: T.muted, fontSize: 11 }}>{req.created}</span>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,color:T.bright,fontWeight:500,marginBottom:5,
+                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>
+                            {req.title}</div>
+                          <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                            <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:T.muted}}>{req.id}</span>
+                            <span style={{color:dom.color,fontSize:11}}>{dom.icon} {dom.label}</span>
+                            <span style={{color:T.muted,fontSize:11}}>{req.created}</span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                           <span style={{
-                            background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}30`,
-                            borderRadius: 4, padding: "3px 9px", fontSize: 11, fontWeight: 600,
-                            fontFamily: "'DM Mono', monospace",
-                            animation: req.status === "routing" ? "pulse 1.5s ease infinite" : "none",
+                            background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.color}30`,
+                            borderRadius:4,padding:"3px 9px",fontSize:11,fontWeight:600,
+                            fontFamily:"'DM Mono',monospace",
+                            animation:req.status==="routing"?"blink 1.2s ease infinite":"none",
                           }}>{cfg.label}</span>
-                          <span style={{ color: T.muted, fontSize: 14 }}>›</span>
+                          <span style={{color:T.muted,fontSize:16}}>›</span>
                         </div>
                       </div>
-
-                      {/* Mini progress bar for active requests */}
-                      {isActive && req.status !== "submitted" && (
-                        <div style={{ marginTop: 10 }}>
-                          <div style={{ height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 1, overflow: "hidden" }}>
-                            <div style={{
-                              height: "100%", borderRadius: 1,
-                              background: cfg.color,
-                              width: req.status === "routing" ? "25%" :
-                                     req.status === "in_progress" ? "50%" :
-                                     req.status === "pending" ? "65%" :
-                                     req.status === "approved" ? "85%" : "100%",
-                              transition: "width 0.8s ease",
-                            }} />
-                          </div>
+                      {live&&req.status!=="submitted"&&(
+                        <div style={{marginTop:10,height:2,background:"rgba(255,255,255,0.05)",borderRadius:1,overflow:"hidden"}}>
+                          <div style={{height:"100%",borderRadius:1,background:cfg.color,width:pct,transition:"width 0.9s ease"}}/>
                         </div>
                       )}
                     </div>
@@ -606,104 +535,94 @@ export default function EmployeeDashboard() {
                 })}
               </div>
             </div>
-
-            {/* Dept Tiles */}
-            <div>
-              <div style={{ fontSize: 12, color: T.muted, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 14 }}>DEPARTMENTS</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {DEPT_TILES.map(d => {
-                  const dom = DOMAIN_CFG[d.domain];
-                  return (
-                    <div
-                      key={d.domain}
-                      onClick={() => setDeptModal(d.domain)}
-                      style={{
-                        background: T.navyCard, border: `1px solid ${T.border}`,
-                        borderRadius: 10, padding: "16px 18px", cursor: "pointer",
-                        transition: "all 0.15s",
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = dom.color + "40"; e.currentTarget.style.background = T.navyHover; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.navyCard; }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <div style={{
-                          width: 28, height: 28, borderRadius: 7,
-                          background: dom.color + "18", border: `1px solid ${dom.color}25`,
-                          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
-                        }}>{dom.icon}</div>
-                        <span style={{ fontWeight: 600, color: dom.color, fontSize: 14 }}>{d.domain}</span>
-                      </div>
-                      <div style={{ color: T.muted, fontSize: 11, marginBottom: 8 }}>{d.desc}</div>
-                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4 }}>
-                        {d.scenarios.map(s => (
-                          <span key={s} style={{
-                            fontSize: 10, color: T.muted,
-                            background: "rgba(255,255,255,0.04)",
-                            border: "1px solid rgba(255,255,255,0.06)",
-                            borderRadius: 4, padding: "2px 6px",
-                          }}>{s}</span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
 
-          {/* RIGHT: Profile + Announcements */}
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
-            {/* Profile card */}
-            <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+          {/* RIGHT SIDEBAR */}
+          <div style={{display:"flex",flexDirection:"column" as const,gap:14}}>
+
+            {/* Profile */}
+            <div style={{background:T.navyCard,border:`1px solid ${T.border}`,borderRadius:10,padding:18}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: "50%",
-                  background: `linear-gradient(135deg, ${T.gold}50, ${T.gold}20)`,
-                  border: `2px solid ${T.goldBorder}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 15, fontWeight: 700, color: T.gold, fontFamily: "'DM Mono', monospace",
-                }}>{EMPLOYEE.avatar}</div>
+                  width:42,height:42,borderRadius:"50%",
+                  background:`linear-gradient(135deg,${T.gold}45,${T.gold}15)`,
+                  border:`2px solid ${T.goldBorder}`,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  fontSize:14,fontWeight:700,color:T.gold,fontFamily:"'DM Mono',monospace",
+                }}>{EMP.avatar}</div>
                 <div>
-                  <div style={{ fontWeight: 700, color: T.bright, fontSize: 15 }}>{EMPLOYEE.name}</div>
-                  <div style={{ color: T.muted, fontSize: 11, fontFamily: "'DM Mono', monospace" }}>{EMPLOYEE.id}</div>
+                  <div style={{fontWeight:700,color:T.bright,fontSize:14}}>{EMP.name}</div>
+                  <div style={{color:T.muted,fontSize:10,fontFamily:"'DM Mono',monospace"}}>{EMP.id}</div>
                 </div>
               </div>
               {[
-                { k: "Department",  v: EMPLOYEE.dept },
-                { k: "Role",        v: EMPLOYEE.role },
-                { k: "Manager",     v: EMPLOYEE.manager },
-                { k: "Location",    v: EMPLOYEE.location },
-                { k: "Tenure",      v: EMPLOYEE.tenure },
-              ].map(({ k, v }) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${T.borderMid}` }}>
-                  <span style={{ color: T.muted, fontSize: 11 }}>{k}</span>
-                  <span style={{ color: T.text, fontSize: 12, textAlign: "right" as const, maxWidth: 140 }}>{v}</span>
+                {k:"Dept",       v:EMP.dept},
+                {k:"Manager",    v:EMP.manager},
+                {k:"Location",   v:EMP.location},
+                {k:"Cost Center",v:EMP.costCenter},
+                {k:"PTO Balance",v:`${EMP.pto} days`,c:T.violet},
+                {k:"Tenure",     v:EMP.tenure},
+              ].map(({k,v,c})=>(
+                <div key={k} style={{display:"flex",justifyContent:"space-between",
+                  padding:"5px 0",borderBottom:`1px solid ${T.borderMid}`}}>
+                  <span style={{color:T.muted,fontSize:11}}>{k}</span>
+                  <span style={{color:c||T.text,fontSize:12}}>{v}</span>
                 </div>
               ))}
+            </div>
+
+            {/* One Data Model panel */}
+            <div style={{background:T.navyCard,border:`1px solid ${T.goldBorder}`,borderRadius:10,padding:16}}>
+              <div style={{fontSize:10,color:T.gold,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em",marginBottom:12}}>
+                ONE DATA MODEL</div>
+              <div style={{color:T.muted,fontSize:11,lineHeight:1.6,marginBottom:12}}>
+                Every request you submit flows through a single unified data layer. Your identity, role, entitlements, and history are resolved once — and shared across every domain.
+              </div>
+              <div style={{display:"flex",flexDirection:"column" as const,gap:6}}>
+                {[
+                  {label:"Identity resolved",        color:T.emerald},
+                  {label:"Entitlements checked",     color:T.emerald},
+                  {label:"8 domains connected",      color:T.teal},
+                  {label:"TrustCore audit active",   color:T.violet},
+                  {label:"RLS enforced per tenant",  color:T.gold},
+                ].map(row=>(
+                  <div key={row.label} style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:row.color,flexShrink:0}}/>
+                    <span style={{color:T.muted,fontSize:11}}>{row.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Announcements */}
-            <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em" }}>ANNOUNCEMENTS</div>
-              {ANNOUNCEMENTS.map(a => (
-                <div key={a.id} style={{ padding: "12px 16px", borderBottom: `1px solid ${T.borderMid}` }}>
-                  <span style={{ background: a.color + "18", color: a.color, fontSize: 9, fontFamily: "'DM Mono', monospace", padding: "1px 6px", borderRadius: 3, display: "inline-block", marginBottom: 5 }}>{a.tag}</span>
-                  <p style={{ color: T.text, fontSize: 12, lineHeight: 1.5 }}>{a.text}</p>
+            <div style={{background:T.navyCard,border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
+              <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`,
+                fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em"}}>
+                COMPANY NOTICES</div>
+              {NOTICES.map((n,i)=>(
+                <div key={i} style={{padding:"10px 14px",borderBottom:`1px solid ${T.borderMid}`}}>
+                  <span style={{background:n.color+"18",color:n.color,fontSize:9,
+                    fontFamily:"'DM Mono',monospace",padding:"1px 6px",borderRadius:3,
+                    display:"inline-block",marginBottom:4}}>{n.domain}</span>
+                  <p style={{color:T.text,fontSize:11,lineHeight:1.5}}>{n.text}</p>
                 </div>
               ))}
             </div>
 
-            {/* Stats */}
-            <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 10, padding: 16 }}>
-              <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 12 }}>YOUR ACTIVITY</div>
+            {/* Activity */}
+            <div style={{background:T.navyCard,border:`1px solid ${T.border}`,borderRadius:10,padding:14}}>
+              <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.07em",marginBottom:10}}>
+                YOUR ACTIVITY</div>
               {[
-                { label: "Requests this month", value: String(requests.length + 2), color: T.teal },
-                { label: "Avg resolution time",  value: "1.8 hrs",               color: T.emerald },
-                { label: "PTO balance",           value: "14 days",               color: T.violet },
-              ].map(s => (
-                <div key={s.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${T.borderMid}` }}>
-                  <span style={{ color: T.muted, fontSize: 11 }}>{s.label}</span>
-                  <span style={{ color: s.color, fontSize: 13, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}>{s.value}</span>
+                {label:"Requests this month", v:String(requests.length+2), c:T.teal},
+                {label:"Avg resolution",      v:"1.8 hrs",                  c:T.emerald},
+                {label:"Domains used",        v:"3 of 8",                   c:T.violet},
+                {label:"PTO used YTD",        v:"6 days",                   c:T.amber},
+              ].map(s=>(
+                <div key={s.label} style={{display:"flex",justifyContent:"space-between",
+                  padding:"5px 0",borderBottom:`1px solid ${T.borderMid}`}}>
+                  <span style={{color:T.muted,fontSize:11}}>{s.label}</span>
+                  <span style={{color:s.c,fontSize:12,fontWeight:600,fontFamily:"'DM Mono',monospace"}}>{s.v}</span>
                 </div>
               ))}
             </div>
@@ -711,67 +630,68 @@ export default function EmployeeDashboard() {
         </div>
       </div>
 
-      {/* ── DEPT MODAL ── */}
-      {deptModal && (() => {
-        const d = DEPT_TILES.find(t => t.domain === deptModal)!;
-        const dom = DOMAIN_CFG[deptModal];
-        return (
-          <div style={{ position: "fixed", inset: 0, zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}
-            onClick={() => setDeptModal(null)}>
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)" }} />
-            <div onClick={e => e.stopPropagation()} style={{
-              position: "relative", zIndex: 1,
-              background: T.navyMid, border: `1px solid ${dom.color}30`,
-              borderRadius: 14, padding: 28, width: 360,
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                <div style={{ fontSize: 24 }}>{dom.icon}</div>
-                <div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: dom.color }}>{deptModal}</div>
-                  <div style={{ color: T.muted, fontSize: 12 }}>{d.desc}</div>
-                </div>
+      {/* ── DOMAIN MODAL ── */}
+      {activeDomain&&openDom&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={()=>setActiveDomain(null)}>
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(3px)"}}/>
+          <div onClick={e=>e.stopPropagation()} style={{
+            position:"relative",zIndex:1,
+            background:T.navyMid,border:`1px solid ${openDom.color}30`,
+            borderRadius:14,padding:28,width:380,
+            boxShadow:"0 24px 64px rgba(0,0,0,0.6)",
+          }}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <div style={{width:44,height:44,borderRadius:12,
+                background:openDom.color+"18",border:`1px solid ${openDom.color}25`,
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,color:openDom.color}}>
+                {openDom.icon}</div>
+              <div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:openDom.color}}>
+                  {openDom.label}</div>
+                <div style={{color:T.muted,fontSize:12}}>{openDom.desc}</div>
               </div>
-              <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>COMMON REQUESTS</div>
-              <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-                {d.scenarios.map(s => (
-                  <button key={s} onClick={() => { setDeptModal(null); submitRequest(s); inputRef.current?.focus(); }} style={{
-                    padding: "10px 14px", borderRadius: 8, textAlign: "left" as const,
-                    background: dom.color + "0D", border: `1px solid ${dom.color}20`,
-                    color: T.text, fontSize: 13, cursor: "pointer",
-                    fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s",
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = dom.color + "50"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = dom.color + "20"}
-                  >
-                    {s} <span style={{ color: dom.color, float: "right" as const }}>→</span>
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => setDeptModal(null)} style={{
-                marginTop: 16, width: "100%", padding: "8px 0",
-                background: "transparent", border: `1px solid ${T.border}`,
-                borderRadius: 8, color: T.muted, cursor: "pointer", fontSize: 12,
-              }}>Close</button>
             </div>
+            <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.06em",marginBottom:10}}>
+              COMMON REQUESTS</div>
+            <div style={{display:"flex",flexDirection:"column" as const,gap:7}}>
+              {openDom.scenarios.map(s=>(
+                <button key={s} onClick={()=>{setActiveDomain(null);submit(s);}} style={{
+                  padding:"10px 14px",borderRadius:8,textAlign:"left" as const,
+                  background:openDom.color+"0D",border:`1px solid ${openDom.color}18`,
+                  color:T.text,fontSize:13,cursor:"pointer",
+                  fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s",
+                  display:"flex",justifyContent:"space-between" as const,alignItems:"center",
+                }}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=openDom.color+"45"}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=openDom.color+"18"}
+                >
+                  <span>{s}</span><span style={{color:openDom.color}}>→</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={()=>setActiveDomain(null)} style={{
+              marginTop:14,width:"100%",padding:"8px 0",borderRadius:8,
+              background:"transparent",border:`1px solid ${T.border}`,
+              color:T.muted,cursor:"pointer",fontSize:12,
+            }}>Close</button>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* ── REQUEST DRAWER ── */}
-      {activeReq && (
-        <RequestDrawer
-          req={activeReq}
-          onClose={() => setActiveReq(null)}
-          onApprove={activeReq.status === "pending" ? () => {
-            progressRequest(activeReq.id);
-            setTimeout(() => progressRequest(activeReq.id), 2000);
-          } : undefined}
+      {activeReq&&(
+        <Drawer req={activeReq} onClose={()=>setActiveReq(null)}
+          onApprove={activeReq.status==="pending"?()=>{
+            advance(activeReq.id,"approved", activeReq.steps.findIndex((s:any)=>s.label.includes("Approved")));
+            setTimeout(()=>advance(activeReq.id,"completed", activeReq.steps.length-1),2000);
+          }:undefined}
         />
       )}
 
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+        @keyframes pulseStep { 0%,100%{box-shadow:0 0 8px rgba(232,160,32,0.5);} 50%{box-shadow:0 0 16px rgba(232,160,32,0.9);} }
       `}</style>
     </div>
   );
