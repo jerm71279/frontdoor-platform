@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import ConnectorPanel from "@/components/ConnectorPanel";
 
 /* ── Tokens ── */
 const T = {
@@ -644,6 +645,23 @@ export default function EmployeeDashboard() {
       });
     }
 
+    /* Dispatch to connector (fire-and-forget — updates metadata in DB) */
+    const SUPA_URL  = "https://kroqooyprcvzzgkclvmy.supabase.co";
+    const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtyb3Fvb3lwcmN2enpna2Nsdm15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTQ5ODEsImV4cCI6MjA4OTUzMDk4MX0.yqmJ_7Ka2qgITspGqhFCpET4fM7-LEvtfrTQo8EsHEk";
+    fetch(`${SUPA_URL}/functions/v1/connector-dispatch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": SUPA_ANON },
+      body: JSON.stringify({
+        domain, request_id: id,
+        tenant_id: "demo",
+        payload: { title: newReq.title, description: text, category: domain.toLowerCase() },
+      }),
+    }).then(r => r.json()).then(data => {
+      if (data.external_id) {
+        updateLocalRequest(id, { metadata: { ...newReq.metadata, external_id: data.external_id, external_url: data.external_url, connector: data.connector, mode: data.mode } });
+      }
+    }).catch(() => {});
+
     /* Animate through states */
     setTimeout(()=>advanceRequest(id,"routing",1), 1200);
     setTimeout(()=>advanceRequest(id,"in_progress",2), 2800);
@@ -942,6 +960,16 @@ export default function EmployeeDashboard() {
                               <span style={{color:dom.color,fontSize:11}}>{dom.icon} {dom.label}</span>
                               <span style={{color:T.muted,fontSize:11}}>{req.created}</span>
                               {req.sla_label&&<span style={{color:T.muted,fontSize:10}}>{req.sla_label}</span>}
+                              {req.metadata?.external_id&&(
+                                <span style={{fontSize:9,fontFamily:"'DM Mono',monospace",
+                                  color: req.metadata.mode==="live" ? T.emerald : T.amber,
+                                  background: req.metadata.mode==="live" ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
+                                  border: `1px solid ${req.metadata.mode==="live" ? "rgba(16,185,129,0.25)" : "rgba(245,158,11,0.25)"}`,
+                                  borderRadius:3, padding:"1px 5px",
+                                }}>
+                                  {req.metadata.external_id}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -1012,6 +1040,9 @@ export default function EmployeeDashboard() {
                 onMouseLeave={e=>e.currentTarget.style.color=T.muted}
               >Sign out</button>
             )}
+
+            {/* Nexus Connectors */}
+            <ConnectorPanel />
 
             {/* One Data Model panel */}
             <div style={{background:T.navyCard,border:`1px solid ${T.goldBorder}`,borderRadius:10,padding:16}}>

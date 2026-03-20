@@ -77,3 +77,6 @@ verify_jwt = true
 
 [functions.workflow-intelligence]
 verify_jwt = true
+
+[functions.connector-dispatch]
+verify_jwt = false
