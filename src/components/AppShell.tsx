@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenant } from "@/contexts/TenantContext";
 
 const T = {
   navyDeep:   "#080E1A",
@@ -53,6 +54,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const navigate        = useNavigate();
   const { pathname }    = useLocation();
   const { profile, signOut } = useAuth();
+  const { tenant }      = useTenant();
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -98,7 +100,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     navigate("/auth");
   };
 
-  const avatarColor = currentUser?.color ?? T.gold;
+  const avatarColor = currentUser?.color ?? tenant.primary_color;
   const avatarText  = currentUser?.avatar ?? (profile ? profile.avatar : "?");
 
   return (
@@ -121,12 +123,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
           onClick={() => navigate("/")}>
           <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={T.gold} strokeWidth="1.5" />
-            <polygon points="16,8 24,12.5 24,21.5 16,26 8,21.5 8,12.5" fill={T.goldDim} stroke={T.gold} strokeWidth="0.7" />
+            <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={tenant.primary_color} strokeWidth="1.5" />
+            <polygon points="16,8 24,12.5 24,21.5 16,26 8,21.5 8,12.5" fill={tenant.primary_color + "18"} stroke={tenant.primary_color} strokeWidth="0.7" />
           </svg>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700, color: T.gold }}>
-            iOPEX FrontDoor
-          </span>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 15, fontWeight: 700, color: tenant.primary_color }}>
+              {tenant.name}
+            </span>
+            <span style={{ fontSize: 8, color: T.muted, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em" }}>
+              iOPEX FrontDoor
+            </span>
+          </div>
         </div>
 
         {/* Nav tabs */}
@@ -164,7 +171,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.emerald, boxShadow: `0 0 6px ${T.emerald}` }} />
-            <span style={{ color: T.emerald, fontSize: 10, fontFamily: "'DM Mono', monospace" }}>LIVE</span>
+            <span style={{ color: T.emerald, fontSize: 10, fontFamily: "'DM Mono', monospace" }}>
+              {tenant.slug.toUpperCase()}
+            </span>
           </div>
 
           {/* User avatar / switcher button */}
@@ -213,7 +222,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 zIndex: 400,
               }}>
                 <div style={{ padding: "4px 12px 8px", borderBottom: `1px solid ${T.border}` }}>
-                  <div style={{ fontSize: 9, color: T.gold, fontFamily: "'DM Mono',monospace",
+                  <div style={{ fontSize: 9, color: tenant.primary_color, fontFamily: "'DM Mono',monospace",
                     letterSpacing: "0.07em", marginBottom: 4 }}>SWITCH EMPLOYEE</div>
                 </div>
                 {DEMO_USERS.map(u => {
