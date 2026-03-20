@@ -36,8 +36,7 @@ serve(async (req) => {
       );
     }
 
-    const GEMINI_API_KEY  = Deno.env.get("GEMINI_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const supabaseUrl     = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey     = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -48,13 +47,13 @@ serve(async (req) => {
 
     if (GEMINI_API_KEY) {
       const embeddingRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "models/text-embedding-004",
             content: { parts: [{ text: question }] },
+            outputDimensionality: 768,
           }),
         }
       );
@@ -96,43 +95,34 @@ serve(async (req) => {
     let answer = "";
     const sources: { doc: string; excerpt: string }[] = [];
 
-    if (chunks.length > 0 && LOVABLE_API_KEY) {
+    if (chunks.length > 0 && GEMINI_API_KEY) {
       const context = chunks
         .map((c: any, i: number) => `[${i + 1}] Source: ${c.source}\n${c.content}`)
         .join("\n\n---\n\n");
 
-      const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are an enterprise knowledge assistant for the ${domain} domain at Acme Corp. ` +
-                `Answer the employee's question concisely and accurately using ONLY the provided knowledge base context. ` +
-                `Be direct and actionable. Include specific details (URLs, names, numbers, deadlines) from the context. ` +
-                `If the context comes from a resolved ticket, say so. ` +
-                `If the answer is not fully covered, state what you know and note what's missing. ` +
-                `Do not make up information.`,
-            },
-            {
-              role: "user",
-              content: `Question: ${question}\n\nKnowledge Base Context:\n${context}`,
-            },
-          ],
-          temperature: 0.2,
-          max_tokens: 450,
-        }),
-      });
+      const prompt =
+        `You are an enterprise knowledge assistant for the ${domain} domain at Acme Corp. ` +
+        `Answer the employee's question concisely and accurately using ONLY the provided knowledge base context. ` +
+        `Be direct and actionable. Include specific details (URLs, names, numbers, deadlines) from the context. ` +
+        `If the answer is not fully covered, state what you know and note what's missing. ` +
+        `Do not make up information.\n\n` +
+        `Question: ${question}\n\nKnowledge Base Context:\n${context}`;
+
+      const aiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 450 },
+          }),
+        }
+      );
 
       if (aiRes.ok) {
         const aiData = await aiRes.json();
-        answer = aiData.choices?.[0]?.message?.content ?? "";
+        answer = aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
       }
 
       // Build citations from top 3 chunks
@@ -143,7 +133,7 @@ serve(async (req) => {
         });
       }
     } else if (chunks.length > 0) {
-      // No LLM key — return the best chunk verbatim
+      // No API key — return best chunk verbatim
       answer = chunks[0].content;
       sources.push({
         doc: chunks[0].source,
