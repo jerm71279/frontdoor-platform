@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   { label: "Employee Portal",   path: "/",                           icon: "◎", color: T.teal },
   { label: "AI Control Tower",  path: "/governance/control-tower",   icon: "⬡", color: T.gold },
   { label: "Failure Recovery",  path: "/governance/failure-recovery",icon: "⟳", color: T.violet },
-  { label: "Framework",         path: "/framework",                  icon: "◈", color: T.emerald },
+  { label: "End User Journey",  path: "/journey",                    icon: "◈", color: T.emerald },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
