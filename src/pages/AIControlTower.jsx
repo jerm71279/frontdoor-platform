@@ -303,59 +303,161 @@ function OverviewTab() {
   );
 }
 
+const KNOWLEDGE_SOURCES = [
+  { agent: "IntentRouter",        corpus: "Request History · Domain Taxonomy · Employee Directory",  docs: "124K",  indexed: "Mar 19",  model: "text-embedding-3-large" },
+  { agent: "ITStream (IT)",       corpus: "ServiceNow KB · IT Runbooks · Device Catalog · CMDB",     docs: "38K",   indexed: "Mar 18",  model: "text-embedding-3-large" },
+  { agent: "EmployeeWorks (HR)",  corpus: "Workday Docs · HR Policy Corpus · Benefits KB · PTO Rules",docs: "52K",  indexed: "Mar 19",  model: "text-embedding-3-large" },
+  { agent: "FinFlow (Finance)",   corpus: "SAP GL Docs · Finance Policy · Vendor Registry · PO Rules",docs: "29K",  indexed: "Mar 17",  model: "text-embedding-3-large" },
+  { agent: "LegalAssist (Legal)", corpus: "Contract Templates · Legal Policy Library · NDA Corpus",  docs: "14K",  indexed: "Mar 15",  model: "text-embedding-3-large" },
+];
+
 function AIInventoryTab() {
-  const categories = [
-    { label: "AI Agents", color: T.teal, items: [
-      { name: "EmployeeWorks (HR)",     model: "claude-sonnet-4-6", status: "active",   calls: "2,841", accuracy: "97.2%" },
-      { name: "ITStream (IT)",          model: "claude-haiku-4-5",  status: "active",   calls: "4,103", accuracy: "94.8%" },
-      { name: "FinFlow (Finance)",      model: "claude-sonnet-4-6", status: "active",   calls: "891",   accuracy: "96.1%" },
-      { name: "LegalAssist (Legal)",    model: "claude-haiku-4-5",  status: "inactive", calls: "0",     accuracy: "—" },
-      { name: "IntentRouter",           model: "gemini-2.0-flash",  status: "active",   calls: "6,101", accuracy: "91.3%" },
-    ]},
-    { label: "Models", color: T.violet, items: [
-      { name: "claude-sonnet-4-6",  model: "Anthropic", status: "active",   calls: "3,732",  accuracy: "97.2%" },
-      { name: "claude-haiku-4-5",   model: "Anthropic", status: "active",   calls: "4,203",  accuracy: "94.8%" },
-      { name: "gemini-2.0-flash",   model: "Google",    status: "warning",  calls: "6,101",  accuracy: "91.3%" },
-    ]},
+  const agents = [
+    { name: "IntentRouter",           model: "gemini-2.0-flash",  status: "active",   calls: "6,101", accuracy: "91.3%", corpus: "Domain Taxonomy · Request History" },
+    { name: "ITStream (IT)",          model: "claude-haiku-4-5",  status: "active",   calls: "4,103", accuracy: "94.8%", corpus: "ServiceNow KB · IT Runbooks" },
+    { name: "EmployeeWorks (HR)",     model: "claude-sonnet-4-6", status: "active",   calls: "2,841", accuracy: "97.2%", corpus: "Workday Docs · HR Policy" },
+    { name: "FinFlow (Finance)",      model: "claude-sonnet-4-6", status: "active",   calls: "891",   accuracy: "96.1%", corpus: "SAP GL Docs · Finance Policy" },
+    { name: "LegalAssist (Legal)",    model: "claude-haiku-4-5",  status: "inactive", calls: "0",     accuracy: "—",     corpus: "Contract Templates · NDA Corpus" },
   ];
+  const models = [
+    { name: "claude-sonnet-4-6",  model: "Anthropic", status: "active",   calls: "3,732",  accuracy: "97.2%" },
+    { name: "claude-haiku-4-5",   model: "Anthropic", status: "active",   calls: "4,203",  accuracy: "94.8%" },
+    { name: "gemini-2.0-flash",   model: "Google",    status: "warning",  calls: "6,101",  accuracy: "91.3%" },
+  ];
+
   return (
     <div>
       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: T.bright, marginBottom: 4 }}>AI Inventory</div>
-      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>All AI agents, models, and data sources registered on this tenant.</div>
-      {categories.map(cat => (
-        <div key={cat.label} style={{ marginBottom: 20 }}>
-          <div style={{ color: cat.color, fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 10 }}>{cat.label.toUpperCase()}</div>
-          <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr>
-                  {["Name", "Model / Provider", "API Calls", "Accuracy", "Status"].map(h => (
-                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace", borderBottom: `1px solid ${T.border}`, fontWeight: 500 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {cat.items.map((item, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${T.borderMid}` }}>
-                    <td style={{ padding: "12px 16px", color: T.bright, fontWeight: 500 }}>{item.name}</td>
-                    <td style={{ padding: "12px 16px", color: T.muted, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{item.model}</td>
-                    <td style={{ padding: "12px 16px", color: T.text, fontFamily: "'DM Mono', monospace" }}>{item.calls}</td>
-                    <td style={{ padding: "12px 16px", color: item.accuracy === "—" ? T.muted : T.teal, fontFamily: "'DM Mono', monospace" }}>{item.accuracy}</td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{
-                        background: item.status === "active" ? T.emeraldDim : item.status === "warning" ? T.amberDim : "rgba(255,255,255,0.04)",
-                        color: item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted,
-                        border: `1px solid ${item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted}30`,
-                        borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono', monospace",
-                      }}>{item.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>All AI agents, models, and knowledge sources registered on this tenant. Every agent is RAG-grounded.</div>
+
+      {/* ── Grounding summary banner ── */}
+      <div style={{
+        background: T.emeraldDim, border: `1px solid rgba(16,185,129,0.22)`,
+        borderRadius: 10, padding: "12px 18px", marginBottom: 20,
+        display: "flex", alignItems: "center", gap: 14,
+      }}>
+        <span style={{ fontSize: 20 }}>⬡</span>
+        <div style={{ flex: 1 }}>
+          <span style={{ color: T.emerald, fontWeight: 600, fontSize: 13 }}>All 5 agents are RAG-grounded</span>
+          <span style={{ color: T.muted, fontSize: 12, marginLeft: 12 }}>
+            Every response is grounded in verified enterprise knowledge — hallucination risk mitigated at every domain.
+          </span>
         </div>
-      ))}
+        <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
+          {[["257K", "docs indexed"], ["5", "vector stores"], ["100%", "grounding coverage"]].map(([v, l]) => (
+            <div key={l} style={{ textAlign: "center" }}>
+              <div style={{ color: T.emerald, fontFamily: "'DM Mono', monospace", fontSize: 16, fontWeight: 700 }}>{v}</div>
+              <div style={{ color: T.muted, fontSize: 10 }}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── AI Agents table ── */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ color: T.teal, fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 10 }}>AI AGENTS</div>
+        <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                {["Agent", "Model", "API Calls", "Accuracy", "Grounding", "Status"].map(h => (
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace", borderBottom: `1px solid ${T.border}`, fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {agents.map((item, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${T.borderMid}` }}>
+                  <td style={{ padding: "12px 16px", color: T.bright, fontWeight: 500 }}>{item.name}</td>
+                  <td style={{ padding: "12px 16px", color: T.muted, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{item.model}</td>
+                  <td style={{ padding: "12px 16px", color: T.text, fontFamily: "'DM Mono', monospace" }}>{item.calls}</td>
+                  <td style={{ padding: "12px 16px", color: item.accuracy === "—" ? T.muted : T.teal, fontFamily: "'DM Mono', monospace" }}>{item.accuracy}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{
+                        background: T.emeraldDim, color: T.emerald,
+                        border: `1px solid rgba(16,185,129,0.25)`,
+                        borderRadius: 4, padding: "2px 7px", fontSize: 10,
+                        fontFamily: "'DM Mono', monospace", fontWeight: 700, flexShrink: 0,
+                      }}>RAG ✓</span>
+                      <span style={{ color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace" }}>{item.corpus}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{
+                      background: item.status === "active" ? T.emeraldDim : item.status === "warning" ? T.amberDim : "rgba(255,255,255,0.04)",
+                      color: item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted,
+                      border: `1px solid ${item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted}30`,
+                      borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono', monospace",
+                    }}>{item.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Models table ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ color: T.violet, fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 10 }}>MODELS</div>
+        <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                {["Model", "Provider", "API Calls", "Accuracy", "Status"].map(h => (
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace", borderBottom: `1px solid ${T.border}`, fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {models.map((item, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${T.borderMid}` }}>
+                  <td style={{ padding: "12px 16px", color: T.bright, fontWeight: 500 }}>{item.name}</td>
+                  <td style={{ padding: "12px 16px", color: T.muted, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{item.model}</td>
+                  <td style={{ padding: "12px 16px", color: T.text, fontFamily: "'DM Mono', monospace" }}>{item.calls}</td>
+                  <td style={{ padding: "12px 16px", color: T.teal, fontFamily: "'DM Mono', monospace" }}>{item.accuracy}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{
+                      background: item.status === "active" ? T.emeraldDim : item.status === "warning" ? T.amberDim : "rgba(255,255,255,0.04)",
+                      color: item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted,
+                      border: `1px solid ${item.status === "active" ? T.emerald : item.status === "warning" ? T.amber : T.muted}30`,
+                      borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "'DM Mono', monospace",
+                    }}>{item.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Knowledge Sources ── */}
+      <div>
+        <div style={{ color: T.gold, fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: "0.06em", marginBottom: 10 }}>KNOWLEDGE SOURCES · VECTOR STORES</div>
+        <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                {["Agent", "Knowledge Corpus", "Docs", "Last Indexed", "Embedding Model"].map(h => (
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: T.muted, fontSize: 10, fontFamily: "'DM Mono', monospace", borderBottom: `1px solid ${T.border}`, fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {KNOWLEDGE_SOURCES.map((ks, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${T.borderMid}` }}>
+                  <td style={{ padding: "12px 16px", color: T.bright, fontWeight: 500 }}>{ks.agent}</td>
+                  <td style={{ padding: "12px 16px", color: T.muted, fontSize: 11 }}>{ks.corpus}</td>
+                  <td style={{ padding: "12px 16px", color: T.teal, fontFamily: "'DM Mono', monospace" }}>{ks.docs}</td>
+                  <td style={{ padding: "12px 16px", color: T.muted, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{ks.indexed}</td>
+                  <td style={{ padding: "12px 16px", color: T.violet, fontFamily: "'DM Mono', monospace", fontSize: 11 }}>{ks.model}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
@@ -438,6 +540,13 @@ function RiskTab() {
     { id: "AI-012", framework: "NIST AI RMF",  severity: "MED",      title: "Audit log retention gap — 90 days between quarters",        owner: "Security",       due: "Mar 28" },
     { id: "AI-011", framework: "EU AI Act",     severity: "MED",      title: "Human oversight docs not current for 3 agent types",        owner: "AI Governance",  due: "Mar 30" },
   ];
+  const groundingControls = [
+    { agent: "IntentRouter",        corpus: "Domain Taxonomy · Request History",          docs: "124K", status: "current" },
+    { agent: "ITStream (IT)",       corpus: "ServiceNow KB · IT Runbooks · Device Catalog",docs: "38K", status: "current" },
+    { agent: "EmployeeWorks (HR)",  corpus: "Workday Docs · HR Policy · Benefits KB",      docs: "52K", status: "current" },
+    { agent: "FinFlow (Finance)",   corpus: "SAP GL Docs · Finance Policy · Vendor Reg.",  docs: "29K", status: "current" },
+    { agent: "LegalAssist (Legal)", corpus: "Contract Templates · NDA Corpus",             docs: "14K", status: "current" },
+  ];
   const sev = { CRITICAL:"#ff4d6d", HIGH:T.rose, MED:T.amber, LOW:T.teal };
   return (
     <div>
@@ -455,6 +564,28 @@ function RiskTab() {
           </div>
         ))}
       </div>
+      {/* Grounding coverage — closed control */}
+      <div style={{ background: T.navyCard, border: `1px solid rgba(16,185,129,0.18)`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ color: T.bright, fontSize: 13, fontWeight: 600 }}>RAG Grounding Coverage</span>
+          <span style={{ background: T.emeraldDim, color: T.emerald, border: `1px solid rgba(16,185,129,0.25)`, borderRadius: 4, padding: "2px 10px", fontSize: 10, fontFamily: "'DM Mono', monospace", fontWeight: 700 }}>100% COVERED · NO RISK</span>
+        </div>
+        <div style={{ padding: "10px 18px 4px", color: T.muted, fontSize: 12 }}>
+          All active agents are grounded in verified enterprise knowledge. Hallucination risk mitigated. Responses are citeable and auditable.
+        </div>
+        {groundingControls.map((g, i) => (
+          <div key={i} style={{ display: "flex", gap: 14, padding: "11px 18px", borderBottom: `1px solid ${T.borderMid}`, alignItems: "center" }}>
+            <span style={{ color: T.emerald, fontSize: 13, flexShrink: 0 }}>✓</span>
+            <div style={{ flex: 1 }}>
+              <span style={{ color: T.bright, fontSize: 13, fontWeight: 500 }}>{g.agent}</span>
+              <span style={{ color: T.muted, fontSize: 11, marginLeft: 12 }}>{g.corpus}</span>
+            </div>
+            <span style={{ color: T.teal, fontFamily: "'DM Mono', monospace", fontSize: 11, flexShrink: 0 }}>{g.docs} docs</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Open Issues */}
       <div style={{ background: T.navyCard, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
         <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}`, color: T.bright, fontSize: 13, fontWeight: 600 }}>Open Issues</div>
         {openIssues.map(issue => (
