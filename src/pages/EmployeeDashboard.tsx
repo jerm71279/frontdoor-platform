@@ -315,92 +315,68 @@ export default function EmployeeDashboard() {
 
   const openDom = DOMAINS.find(d=>d.id===activeDomain);
 
+  /* Escape closes modal, drawer, notif */
+  useEffect(()=>{
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveDomain(null);
+        setActiveReq(null);
+        setNotifOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <div style={{background:T.navy,minHeight:"100vh",fontFamily:"'DM Sans',sans-serif",color:T.text}}>
-
-      {/* ── HEADER ── */}
-      <div style={{background:T.navyDeep,borderBottom:`1px solid ${T.border}`,
-        padding:"0 28px",height:54,display:"flex",alignItems:"center",
-        justifyContent:"space-between",position:"sticky",top:0,zIndex:200}}>
-
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-            <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke={T.gold} strokeWidth="1.5"/>
-            <polygon points="16,8 24,12.5 24,21.5 16,26 8,21.5 8,12.5" fill={T.goldDim} stroke={T.gold} strokeWidth="0.7"/>
-          </svg>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:T.gold}}>
-            iOPEX FrontDoor
-          </span>
-          <span style={{color:T.muted,fontSize:11}}>· Acme Corp</span>
-          {/* Platform tagline */}
-          <span style={{
-            marginLeft:12,padding:"2px 10px",
-            background:"rgba(232,160,32,0.06)",border:`1px solid ${T.goldBorder}`,
-            borderRadius:20,color:T.muted,fontSize:10,fontFamily:"'DM Mono',monospace",
-            letterSpacing:"0.04em",
-          }}>One Platform · One Data Model · Every Corner of Your Business</span>
-        </div>
-
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
-          {/* Notif bell */}
-          <div style={{position:"relative"}}>
-            <button onClick={()=>setNotifOpen(p=>!p)} style={{
-              background:"none",border:"none",cursor:"pointer",
-              color:T.muted,fontSize:16,padding:4,position:"relative",
-            }}>
-              🔔
-              {NOTICES.length>0&&<span style={{
-                position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",
-                background:T.gold,color:T.navy,fontSize:8,fontWeight:700,
-                display:"flex",alignItems:"center",justifyContent:"center",
-              }}>{NOTICES.length}</span>}
-            </button>
-            {notifOpen&&(
-              <div style={{
-                position:"absolute",right:0,top:36,width:300,
-                background:T.navyCard,border:`1px solid ${T.border}`,
-                borderRadius:10,overflow:"hidden",zIndex:300,
-                boxShadow:"0 12px 40px rgba(0,0,0,0.5)",
-              }}>
-                <div style={{padding:"10px 16px",borderBottom:`1px solid ${T.border}`,
-                  fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.06em"}}>
-                  ANNOUNCEMENTS</div>
-                {NOTICES.map((n,i)=>(
-                  <div key={i} style={{padding:"10px 16px",borderBottom:`1px solid ${T.borderMid}`}}>
-                    <span style={{background:n.color+"18",color:n.color,fontSize:9,
-                      fontFamily:"'DM Mono',monospace",padding:"1px 6px",borderRadius:3,marginRight:6}}>
-                      {n.domain}</span>
-                    <span style={{color:T.text,fontSize:12,lineHeight:1.5}}>{n.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Profile */}
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{
-              width:30,height:30,borderRadius:"50%",
-              background:`linear-gradient(135deg,${T.gold}40,${T.gold}15)`,
-              border:`1px solid ${T.goldBorder}`,
-              display:"flex",alignItems:"center",justifyContent:"center",
-              fontSize:11,fontWeight:700,color:T.gold,fontFamily:"'DM Mono',monospace",
-            }}>{EMP.avatar}</div>
-            <div>
-              <div style={{fontSize:12,fontWeight:600,color:T.bright,lineHeight:1.1}}>{EMP.name}</div>
-              <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace"}}>{EMP.id}</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ── BODY ── */}
       <div style={{maxWidth:1140,margin:"0 auto",padding:"28px 24px"}}>
 
         {/* ── GREETING + UNIFIED CHAT BAR ── */}
         <div style={{marginBottom:32}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontWeight:700,color:T.bright,marginBottom:4}}>
-            {greeting}, {EMP.first}.
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:4}}>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontWeight:700,color:T.bright}}>
+              {greeting}, {EMP.first}.
+            </div>
+            {/* Notification bell — moved from removed sticky header */}
+            <div style={{position:"relative",flexShrink:0}}>
+              <button onClick={()=>setNotifOpen(p=>!p)} style={{
+                background:notifOpen?T.navyCard:"none",
+                border:`1px solid ${notifOpen?T.border:"transparent"}`,
+                borderRadius:8,cursor:"pointer",
+                color:T.muted,fontSize:16,padding:"6px 10px",position:"relative",
+                transition:"all 0.15s",
+              }}>
+                🔔
+                {NOTICES.length>0&&<span style={{
+                  position:"absolute",top:2,right:2,width:14,height:14,borderRadius:"50%",
+                  background:T.gold,color:T.navy,fontSize:8,fontWeight:700,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                }}>{NOTICES.length}</span>}
+              </button>
+              {notifOpen&&(
+                <div style={{
+                  position:"absolute",right:0,top:42,width:300,
+                  background:T.navyCard,border:`1px solid ${T.border}`,
+                  borderRadius:10,overflow:"hidden",zIndex:400,
+                  boxShadow:"0 12px 40px rgba(0,0,0,0.5)",
+                }}>
+                  <div style={{padding:"10px 16px",borderBottom:`1px solid ${T.border}`,
+                    fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",letterSpacing:"0.06em"}}>
+                    ANNOUNCEMENTS · Press Esc to close</div>
+                  {NOTICES.map((n,i)=>(
+                    <div key={i} style={{padding:"10px 16px",borderBottom:`1px solid ${T.borderMid}`}}>
+                      <span style={{background:n.color+"18",color:n.color,fontSize:9,
+                        fontFamily:"'DM Mono',monospace",padding:"1px 6px",borderRadius:3,marginRight:6}}>
+                        {n.domain}</span>
+                      <span style={{color:T.text,fontSize:12,lineHeight:1.5}}>{n.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div style={{color:T.muted,fontSize:13,marginBottom:20}}>
             {EMP.role} · {EMP.dept} · {EMP.location} · PTO balance: <span style={{color:T.violet}}>{EMP.pto} days</span>
