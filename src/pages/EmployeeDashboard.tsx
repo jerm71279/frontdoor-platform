@@ -462,6 +462,7 @@ export default function EmployeeDashboard() {
     email:      profile.email      || EMP_DEMO.email,
   } : EMP_DEMO, [profile]);
 
+  const [view,           setView]           = useState<"portal"|"integrations">("portal");
   const [requests,       setRequests]       = useState<any[]>([]);
   const [catalogItems,   setCatalogItems]   = useState<any[]>([]);
   const [input,          setInput]          = useState("");
@@ -833,10 +834,72 @@ export default function EmployeeDashboard() {
           </div>
         </div>
 
-        {/* ── MAIN GRID ── */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 310px",gap:20,alignItems:"start"}}>
+        {/* ── VIEW TABS ── */}
+        <div style={{display:"flex",gap:4,marginBottom:20}}>
+          {([
+            {id:"portal",        label:"◎  My Portal",      color:T.teal},
+            {id:"integrations",  label:"⬡  Integrations",   color:T.gold},
+          ] as const).map(tab=>{
+            const active = view===tab.id;
+            return (
+              <button key={tab.id} onClick={()=>setView(tab.id)} style={{
+                padding:"7px 18px",borderRadius:8,cursor:"pointer",
+                background: active ? tab.color+"18" : "transparent",
+                border:`1px solid ${active ? tab.color+"50" : T.border}`,
+                color: active ? tab.color : T.muted,
+                fontSize:12,fontWeight:active?600:400,
+                fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s",
+              }}>
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-          {/* LEFT */}
+        {/* ── INTEGRATIONS VIEW ── */}
+        {view==="integrations"&&(
+          <div>
+            <div style={{fontSize:10,color:T.muted,fontFamily:"'DM Mono',monospace",
+              letterSpacing:"0.07em",marginBottom:16}}>NEXUS INTEGRATION PLANE</div>
+            <ConnectorPanel expanded />
+          </div>
+        )}
+
+        {/* ── MAIN GRID ── */}
+        {view==="portal"&&<div style={{display:"grid",gridTemplateColumns:"64px 1fr 310px",gap:20,alignItems:"start"}}>
+
+          {/* LEFT ICON STRIP — connector quick-status */}
+          <div style={{display:"flex",flexDirection:"column" as const,gap:6,paddingTop:4}}>
+            <div style={{fontSize:8,color:T.muted,fontFamily:"'DM Mono',monospace",
+              letterSpacing:"0.06em",marginBottom:4,textAlign:"center" as const}}>SYS</div>
+            {[
+              {icon:"🔧",label:"ServiceNow", color:"#81B5A1"},
+              {icon:"◎", label:"Workday",    color:"#F87171"},
+              {icon:"◈", label:"Jira",       color:"#60A5FA"},
+              {icon:"⬡", label:"Teams",      color:"#818CF8"},
+              {icon:"⊡", label:"SharePoint", color:"#34D399"},
+            ].map(c=>(
+              <button key={c.label}
+                onClick={()=>setView("integrations")}
+                title={c.label}
+                style={{
+                  width:44,height:44,borderRadius:10,border:`1px solid ${T.border}`,
+                  background:T.navyCard,display:"flex",alignItems:"center",justifyContent:"center",
+                  fontSize:17,cursor:"pointer",transition:"all 0.15s",
+                  flexShrink:0,
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=c.color+"60";e.currentTarget.style.background=c.color+"12";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.navyCard;}}
+              >
+                {c.icon}
+              </button>
+            ))}
+            <div style={{marginTop:4,width:44,height:1,background:T.border}}/>
+            <div style={{fontSize:8,color:T.muted,fontFamily:"'DM Mono',monospace",
+              textAlign:"center" as const,lineHeight:1.4}}>click<br/>to<br/>config</div>
+          </div>
+
+          {/* MAIN CONTENT */}
           <div>
 
             {/* ── DOMAIN CATALOG GRID ── */}
@@ -1116,7 +1179,7 @@ export default function EmployeeDashboard() {
               ))}
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* ── CATALOG MODAL ── */}

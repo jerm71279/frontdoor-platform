@@ -49,7 +49,7 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(hr / 24)}d ago`;
 }
 
-export default function ConnectorPanel() {
+export default function ConnectorPanel({ expanded = false }: { expanded?: boolean }) {
   const { profile } = useAuth();
   const [connectors, setConnectors] = useState<ConnectorRow[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -69,6 +69,72 @@ export default function ConnectorPanel() {
 
   const liveCount = connectors.filter(c => c.status === "live").length;
   const mockCount = connectors.filter(c => c.status === "mock").length;
+
+  if (expanded) {
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+          {loading ? (
+            <div style={{ color: T.muted, fontSize: 12 }}>Loading connectors…</div>
+          ) : connectors.length === 0 ? (
+            <div style={{ color: T.muted, fontSize: 12 }}>No connectors found — apply migration 20260320000003</div>
+          ) : connectors.map(c => {
+            const cfg   = STATUS_CONFIG[c.status] ?? STATUS_CONFIG.disconnected;
+            const color = c.metadata?.color ?? T.sky;
+            return (
+              <div key={c.id} style={{
+                background: T.navyCard, border: `1px solid ${T.border}`,
+                borderRadius: 12, padding: 20,
+                display: "flex", flexDirection: "column" as const, gap: 12,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: color + "18", border: `1px solid ${color}30`,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
+                  }}>
+                    {c.metadata?.icon ?? "◉"}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{
+                      width: 6, height: 6, borderRadius: "50%", background: cfg.dot,
+                      boxShadow: c.status === "live" ? `0 0 6px ${cfg.dot}` : "none",
+                    }} />
+                    <span style={{ fontSize: 10, color: cfg.color, fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: T.bright, marginBottom: 4 }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.5 }}>{c.metadata?.description ?? ""}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                  <span style={{ fontSize: 9, color: T.muted, fontFamily: "'DM Mono',monospace" }}>
+                    {c.last_sync_at ? `synced ${timeAgo(c.last_sync_at)}` : "not yet synced"}
+                  </span>
+                  <button style={{
+                    fontSize: 10, color: c.status === "live" ? T.emerald : T.amber,
+                    background: "transparent",
+                    border: `1px solid ${c.status === "live" ? T.emerald + "40" : T.amber + "40"}`,
+                    borderRadius: 5, padding: "3px 10px", cursor: "pointer",
+                    fontFamily: "'DM Mono',monospace",
+                  }}>
+                    {c.status === "live" ? "Configured ✓" : "Configure →"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {connectors.length > 0 && (
+          <div style={{ marginTop: 16, fontSize: 10, color: T.muted, fontFamily: "'DM Mono',monospace" }}>
+            Set connector secrets in Supabase → Project Settings → Edge Functions → Secrets to go LIVE.
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{
