@@ -107,6 +107,7 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import FrontDoorApp from "./pages/FrontDoorApp";
 import AIControlTower from "./pages/AIControlTower";
 import FailureRecovery from "./pages/FailureRecoveryFlow";
+import AppShell from "./components/AppShell";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AppShell>
         <Routes>
           {/* iOPEX FrontDoor — employee daily portal */}
           <Route path="/" element={<EmployeeDashboard />} />
@@ -125,7 +127,7 @@ const App = () => (
           {/* iOPEX Framework — sales/pitch artifact */}
           <Route path="/framework" element={<FrontDoorApp />} />
 
-          {/* iOPEX Governance — exec/admin artifacts (open for demo) */}
+          {/* iOPEX Governance — exec/admin artifacts */}
           <Route path="/governance/control-tower" element={<AIControlTower />} />
           <Route path="/governance/failure-recovery" element={<FailureRecovery />} />
 
@@ -658,6 +660,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </AppShell>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
