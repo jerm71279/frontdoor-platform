@@ -133,19 +133,18 @@ const Auth = () => {
 
       const data = await res.json();
 
-      // Write session to localStorage in the exact format Supabase JS v2 expects,
-      // then hard-navigate so AuthContext picks it up fresh.
-      const storageKey = "sb-kroqooyprcvzzgkclvmy-auth-token";
-      localStorage.setItem(storageKey, JSON.stringify({
+      // Use the Supabase client's setSession() — updates internal state + localStorage
+      // correctly, then client-side navigate (no full page reload needed).
+      const { error: sessionErr } = await supabase.auth.setSession({
         access_token:  data.access_token,
-        token_type:    data.token_type,
-        expires_in:    data.expires_in,
-        expires_at:    Math.floor(Date.now() / 1000) + data.expires_in,
         refresh_token: data.refresh_token,
-        user:          data.user,
-      }));
+      });
+      if (sessionErr) {
+        toast.error(`Session error: ${sessionErr.message}`);
+        return;
+      }
 
-      window.location.href = "/portal";
+      navigate("/portal");
     } catch (err: any) {
       toast.error(`Error: ${err.message}`);
     } finally {
