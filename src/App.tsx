@@ -125,17 +125,9 @@ const App = () => (
           {/* iOPEX Framework — sales/pitch artifact */}
           <Route path="/framework" element={<FrontDoorApp />} />
 
-          {/* iOPEX Governance — exec/admin artifacts */}
-          <Route path="/governance/control-tower" element={
-            <ProtectedRoute requireAdmin>
-              <AIControlTower />
-            </ProtectedRoute>
-          } />
-          <Route path="/governance/failure-recovery" element={
-            <ProtectedRoute requireAdmin>
-              <FailureRecovery />
-            </ProtectedRoute>
-          } />
+          {/* iOPEX Governance — exec/admin artifacts (open for demo) */}
+          <Route path="/governance/control-tower" element={<AIControlTower />} />
+          <Route path="/governance/failure-recovery" element={<FailureRecovery />} />
 
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/developers" element={<Developers />} />
